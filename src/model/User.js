@@ -1,29 +1,29 @@
 const mongoose = require("mongoose");
-const slug = require("mongoose-slug-updater");
-const bookSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-    user_id: String,
-    title: String,
-    quantity: Number,
-    author: String,
-    published_year: String,
-    decription: String,
-    date: date,
-    image: [{ type: "String" }],
-    shelf: Number,
-    row: Number,
-    column: Number,
-    price: Number,
+    fullname: String,
+    email: String,
+    password: String,
+    phone: String,
+    avatar: String,
+    role_id: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
     status: {
-      type: "String",
+      type: String,
       default: "active",
     },
-    slug: { type: String, slug: "title", unique: true },
+    deleted: {
+      type: Boolean,
+      default: false,
+    },
+    deleteAt: Date,
+    resertpassword: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
-
-const Book = mongoose.model("books", bookSchema);
-module.exports = Book;
+const user = mongoose.model("users", userSchema);
+module.exports = user;

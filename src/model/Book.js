@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const slug = require("mongoose-slug-updater");
 const bookSchema = new mongoose.Schema(
   {
     user_id: String,
@@ -10,10 +9,20 @@ const bookSchema = new mongoose.Schema(
     decription: String,
     date: date,
     image: [{ type: "String" }],
+    categori_id: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "categorys",
+      },
+    ],
     shelf: Number,
     row: Number,
     column: Number,
     price: Number,
+    deleted: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: "String",
       default: "active",
