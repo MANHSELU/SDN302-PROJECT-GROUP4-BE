@@ -3,5 +3,6 @@ const router  = express.Router();
 const productController = require('../../controller/Users/user.controller')
 
 router.get("/search", productController.searchProduct);
+router.get("/filterPaginated", productController.filterProductPaginated);
 module.exports = router;
  
