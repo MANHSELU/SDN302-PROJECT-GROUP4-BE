@@ -1,10 +1,6 @@
-const express = require("express");
-const router = express.Router();
-const bookController = require("../../controller/Users/book.controller");
-const authController = require("../../controllers/user/auth.controller");
+const router = require("./user.notcheck.routes");
+const middleware = require("./../../middleware/client/checkaccount");
+module.exports = (app) => {
+  app.use("/api/user/notcheck", router);
+};
 
-router.post("/register", authController.register);
-
-router.get("/books/:slug", bookController.getBookBySlug);
-
-module.exports = router;

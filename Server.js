@@ -5,9 +5,10 @@ require("dotenv").config();
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-const adminNotCheck = require("./src/router/Admin/index.notcheck.routes");
-
-adminNotCheck(app);
+const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
+const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
+adminRouterNotCheck(app);
+userRouterNotCheck(app);
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
