@@ -11,10 +11,6 @@ module.exports.checkaccount = async (req, res, next) => {
     });
   } else {
     try {
-      const existblacklist = await blacklist.findOne({ token: token });
-      if (existblacklist) {
-        throw new Error("Token in BlackList");
-      }
       const decode = jwt.verify(token, process.env.JWT_SECRET); // bỏi vì mình mã hóa có 2 giá trị
       const users = await user
         .findOne({ _id: decode.userId })
