@@ -10,7 +10,6 @@ const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
-
 database.connect();
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
