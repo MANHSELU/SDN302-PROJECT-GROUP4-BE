@@ -62,14 +62,12 @@ module.exports.login = async (req, res) => {
 };
 module.exports.register = async (req, res) => {
   try {
-    const { fullname, email, password, phone, role_id } = req.body;
-    // Kiểm tra email tồn tại
-    const existingUser = await User.findOne({ email });
+    var { fullname, email, password, phone, role_id } = req.body;
+    const existingUser = await user.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
-    password = bcrypt.hash(password, 10);
-    // Tạo user
+    password = bcrypt.hashSync(password, 10);
     const newUser = new user({
       fullname,
       email,
@@ -78,11 +76,11 @@ module.exports.register = async (req, res) => {
       role_id: role_id || null,
     });
     await newUser.save();
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
       user: newUser,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };

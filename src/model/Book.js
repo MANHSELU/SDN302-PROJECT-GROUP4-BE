@@ -9,7 +9,7 @@ const bookSchema = new mongoose.Schema(
     author: String,
     published_year: String,
     decription: String,
-    date: date,
+    date: Date,
     image: [{ type: "String" }],
     categori_id: [
       {
