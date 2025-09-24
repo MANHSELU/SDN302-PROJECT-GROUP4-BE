@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const userSchema = new mongoose.Schema(
   {
     fullname: { type: String, required: true },
@@ -13,6 +12,14 @@ const userSchema = new mongoose.Schema(
       ref: "roles",
       default: null,
     },
+const userSchema = new mongoose.Schema(
+  {
+    fullname: String,
+    email: String,
+    password: String,
+    phone: String,
+    avatar: String,
+    role_id: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
 
     status: {
       type: String,
@@ -23,8 +30,7 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
     deleteAt: Date,
-
-    resetpassword: {
+    resertpassword: {
       type: Boolean,
       default: false,
     },
@@ -33,6 +39,5 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-const User = mongoose.model("users", userSchema);
-module.exports = User;
+const user = mongoose.model("users", userSchema);
+module.exports = user;

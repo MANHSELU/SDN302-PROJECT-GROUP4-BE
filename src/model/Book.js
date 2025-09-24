@@ -1,19 +1,17 @@
 const mongoose = require("mongoose");
 const slug = require("mongoose-slug-generator");
-
 mongoose.plugin(slug);
-
 const bookSchema = new mongoose.Schema(
   {
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-    title: { type: String, required: true },
-    quantity: { type: Number, default: 1 },
+    user_id: String,
+    title: String,
+    quantity: Number,
     author: String,
     published_year: String,
-    description: String,
-    date: { type: Date, default: Date.now },
-    image: [{ type: String }],
-    category_id: [
+    decription: String,
+    date: date,
+    image: [{ type: "String" }],
+    categori_id: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "categorys",
@@ -28,7 +26,7 @@ const bookSchema = new mongoose.Schema(
       default: false,
     },
     status: {
-      type: String,
+      type: "String",
       default: "active",
     },
     slug: { type: String, slug: "title", unique: true },
