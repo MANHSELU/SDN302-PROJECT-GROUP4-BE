@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const slug = require("mongoose-slug-generator");
+mongoose.plugin(slug);
 const bookSchema = new mongoose.Schema(
   {
     user_id: String,
@@ -7,7 +9,7 @@ const bookSchema = new mongoose.Schema(
     author: String,
     published_year: String,
     decription: String,
-    date: { type: Date },
+    date: Date,
     image: [{ type: "String" }],
     categori_id: [
       {
