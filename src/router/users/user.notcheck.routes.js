@@ -1,10 +1,10 @@
 const express = require("express");
-const router = express.Router();
+const routerUserNotCheck = express.Router();
 const Usercontroller = require("./../../controller/Users/user.controller");
 const bookController = require("../../controller/Users/book.controller");
-router.post("/loginUser", Usercontroller.login);
+routerUserNotCheck.post("/loginUser", Usercontroller.login);
 
-router.post("/register", Usercontroller.register);
+routerUserNotCheck.post("/register", Usercontroller.register);
 
-router.get("/books/:slug", bookController.getBookBySlug);
-module.exports = router;
+routerUserNotCheck.get("/books/:slug", bookController.getBookBySlug);
+module.exports = routerUserNotCheck;
