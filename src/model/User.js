@@ -1,12 +1,26 @@
 const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
   {
+    fullname: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    phone: { type: String },
+    avatar: { type: String },
+
+    role_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "roles",
+      default: null,
+    },
+const userSchema = new mongoose.Schema(
+  {
     fullname: String,
     email: String,
     password: String,
     phone: String,
     avatar: String,
     role_id: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
+
     status: {
       type: String,
       default: "active",
