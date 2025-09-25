@@ -136,31 +136,33 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 
-module.exports.borrowBookFunction = async (req,res)=>{
-  try{
-    const {userId, bookId} = req.body;
+module.exports.borrowBookFunction = async (req, res) => {
+  try {
+    const { bookId } = req.body;
     const book = await Book.findById(bookId);
-    if(!book){
-      return res.status(404).json({message: "Không tìm thấy sách "});
-    };
-    if(book.quantity <= 0){
-      return res.status(400).json({message: "Sách này đã hết. Vui lòng chọn sách khác"})
-    };
+    if (!book) {
+      return res.status(404).json({ message: "Không tìm thấy sách " });
+    }
+    if (book.quantity <= 0) {
+      return res
+        .status(400)
+        .json({ message: "Sách này đã hết. Vui lòng chọn sách khác" });
+    }
     const userBook = new UserBook({
-      user_id : userId,
-      book_id : bookId,
-      borrow_date : new Date(),
+      user_id: res.locals.user._id,
+      book_id: bookId,
+      borrow_date: new Date(),
       book_detail: {
         price: book.price,
         date: book.date,
         transaction_type: "Chuyển khoản",
-      }
+      },
     });
     await userBook.save();
     book.quantity -= 1;
     await book.save();
     res.status(200).json({ message: "Mượn sách thành công" });
-  }catch(err){
-    res.status(500).json({message: err.message});
-  };
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
