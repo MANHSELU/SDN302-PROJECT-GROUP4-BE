@@ -7,4 +7,8 @@ routerUserNotCheck.post("/loginUser", Usercontroller.login);
 routerUserNotCheck.post("/register", Usercontroller.register);
 
 routerUserNotCheck.get("/books/:slug", bookController.getBookBySlug);
+routerUserNotCheck.get(
+  "/filterPaginated",
+  Usercontroller.findAndFilterProductPaginated
+);
 module.exports = routerUserNotCheck;
