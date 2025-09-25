@@ -8,8 +8,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
+const userRouterCheck = require("./src/router/users/index.check.routes");
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
+userRouterCheck(app);
 database.connect();
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
