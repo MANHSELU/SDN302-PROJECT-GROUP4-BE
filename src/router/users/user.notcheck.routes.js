@@ -16,5 +16,5 @@ routerUserNotCheck.get(
 routerUserNotCheck.get("/newBook", Usercontroller.getNewBook);
 
 routerUserNotCheck.get("/category", Usercontroller.get6category);
-
+routerUserNotCheck.get("/getauthor", Usercontroller.getauthor);
 module.exports = routerUserNotCheck;

@@ -5,6 +5,7 @@ var jwt = require("jsonwebtoken");
 const user = require("./../../model/User");
 const Book = require("../../model/Book");
 const UserBook = require("../../model/User_book");
+const Author = require("../../model/Author");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -202,6 +203,24 @@ module.exports.getNewBook = async (req, res) => {
     Object.assign(response, {
       status: 500,
       message: "Serror error",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+module.exports.getauthor = async (req, res) => {
+  const response = {};
+  try {
+    const Authors = await Author.find({ status: "active" });
+    Object.assign(response, {
+      status: 200,
+      message: "success",
+      data: Authors,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình trên là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Server error",
     });
   }
   return res.status(response.status).json(response);
