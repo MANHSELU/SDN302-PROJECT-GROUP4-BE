@@ -8,6 +8,13 @@ routerUserNotCheck.post("/register", Usercontroller.register);
 
 routerUserNotCheck.get("/books/:slug", bookController.getBookBySlug);
 
-routerUserNotCheck.get("/filterPaginated",Usercontroller.findAndFilterProductPaginated);
+routerUserNotCheck.get(
+  "/filterPaginated",
+  Usercontroller.findAndFilterProductPaginated
+);
 
+routerUserNotCheck.get("/newBook", Usercontroller.getNewBook);
+
+routerUserNotCheck.get("/category", Usercontroller.get6category);
+routerUserNotCheck.get("/getauthor", Usercontroller.getauthor);
 module.exports = routerUserNotCheck;

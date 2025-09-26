@@ -3,10 +3,12 @@ const slug = require("mongoose-slug-updater");
 mongoose.plugin(slug);
 const bookSchema = new mongoose.Schema(
   {
-    user_id: String,
     title: String,
     quantity: Number,
-    author: String,
+    author: {
+      type: mongoose.Types.ObjectId,
+      ref: "authors",
+    },
     published_year: String,
     decription: String,
     date: Date,

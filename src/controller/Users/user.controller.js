@@ -5,6 +5,7 @@ var jwt = require("jsonwebtoken");
 const user = require("./../../model/User");
 const Book = require("../../model/Book");
 const UserBook = require("../../model/User_book");
+const Author = require("../../model/Author");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -23,7 +24,7 @@ module.exports.login = async (req, res) => {
       const result = bcrypt.compareSync(password, users.password);
       if (!result) {
         Object.assign(response, {
-          state: 404,
+          status: 404,
           message: "Not Found",
         });
       } else {
@@ -48,7 +49,7 @@ module.exports.login = async (req, res) => {
           }
         );
         Object.assign(response, {
-          state: 200,
+          status: 200,
           message: "Success",
           access_Token: accesstoken,
           refresh_token: refresh_token,
@@ -57,7 +58,7 @@ module.exports.login = async (req, res) => {
     } catch (e) {
       console.log("lỗi trong chương trình trên là : ", e);
       Object.assign(response, {
-        state: 400,
+        status: 400,
         message: "Bad request",
       });
     }
@@ -92,7 +93,7 @@ module.exports.register = async (req, res) => {
 module.exports.findAndFilterProductPaginated = async (req, res) => {
   try {
     const { categoryTitle = "", keyword = "", page = 1 } = req.query;
-    const pageSize = 5;
+    const pageSize = 10;
     const skip = (page - 1) * pageSize; // ==> Bỏ qua sản phẩm để phân trang,Ví dụ: page = 2, limit = 5 → skip = 5
     // → bỏ 5 sản phẩm đầu, lấy sản phẩm từ thứ 6 trở đi.
     // Hàm lấy tất cả Product
@@ -155,7 +156,7 @@ module.exports.borrowBookFunction = async (req, res) => {
       book_detail: {
         price: book.price,
         date: book.date,
-        transaction_type: "Chuyển khoản",
+        transaction_type: "Booking_book",
       },
     });
     await userBook.save();
@@ -165,4 +166,62 @@ module.exports.borrowBookFunction = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+module.exports.get6category = async (req, res) => {
+  const response = {};
+  try {
+    const Categorys = await Category.find({ status: "active" }).limit(6);
+    Object.assign(response, {
+      status: 500,
+      message: "Successfully",
+      data: Categorys,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình là: ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Serrver error",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+
+module.exports.getNewBook = async (req, res) => {
+  const response = {};
+  try {
+    const Books = await Book.find({ status: "active" })
+      .sort({ createAt: -1 })
+      .limit(6);
+    Object.assign(response, {
+      status: 200,
+      message: "successfull",
+      data: Books,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình trên là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Serror error",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+module.exports.getauthor = async (req, res) => {
+  const response = {};
+  try {
+    const Authors = await Author.find({ status: "active" });
+    Object.assign(response, {
+      status: 200,
+      message: "success",
+      data: Authors,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình trên là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Server error",
+    });
+  }
+  return res.status(response.status).json(response);
 };
