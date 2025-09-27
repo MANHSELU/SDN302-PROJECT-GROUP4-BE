@@ -4,6 +4,7 @@ const userbookSchema = new mongoose.Schema(
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
     book_id: { type: mongoose.Schema.Types.ObjectId, ref: "books" },
     borrow_date: Date,
+    return_date: Date,
     status: {
       type: String,
       default: "active",
@@ -13,6 +14,7 @@ const userbookSchema = new mongoose.Schema(
       date: Date,
       status: {
         type: String,
+        enum : ["active","returned","cancelled"],
         default: "active",
       },
       transaction_type: String,

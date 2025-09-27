@@ -63,7 +63,7 @@ module.exports.login = async (req, res) => {
       });
     }
   }
-  res.status(response.state).json({ response });
+  res.status(response.status).json({ response });
 };
 module.exports.register = async (req, res) => {
   try {
