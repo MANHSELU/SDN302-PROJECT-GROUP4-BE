@@ -137,7 +137,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 
-module.exports.borrowBookFunction = async (req, res) => {
+module.exports.borrowBookFunction = async (req, res) => { 
   try {
     const { bookId,quantityInput } = req.body;
     const book = await Book.findById(bookId);
@@ -154,7 +154,7 @@ module.exports.borrowBookFunction = async (req, res) => {
     if (book.quantity < quantityInput){
       return res
       .status(400)
-      .json({message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput}cuốn`});
+      .json({message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`});
     }
     const userBook = new UserBook({
       user_id: res.locals.user._id,
@@ -168,7 +168,7 @@ module.exports.borrowBookFunction = async (req, res) => {
       },
     });
     await userBook.save();
-    book.quantity -= quantityInput;
+    book.quantity -= Number(quantityInput);
     await book.save();
     res.status(200).json({ message: "Mượn sách thành công" });
   } catch (err) {
