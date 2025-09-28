@@ -2,8 +2,8 @@ const userBook = require("../../model/User_book");
 
 module.exports.returnBorrowBook = async (req, res) => {
   try {
-    const { user_id } = req.body;
-    const userBooking = await userBook.findOne({user_id});
+    const { user_id,book_id } = req.body;
+    const userBooking = await userBook.findOne({user_id,book_id});
     if (!userBooking) {
       return res.status(404).json({ messsage: "Không tìm thấy lịch đặt" });
     }
