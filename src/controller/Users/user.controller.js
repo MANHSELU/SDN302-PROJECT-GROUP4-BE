@@ -107,7 +107,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
       title: { $regex: keyword, $options: "i" },
       status: "active",
     };
-    allProducts = await Product.find(query);
+    allProducts = await Product.find(query).populate("authors");
 
     if (categoryTitle) {
       const categoryQuery = { title: categoryTitle };
@@ -168,10 +168,10 @@ module.exports.borrowBookFunction = async (req, res) => {
   }
 };
 
-module.exports.get6category = async (req, res) => {
+module.exports.getcategory = async (req, res) => {
   const response = {};
   try {
-    const Categorys = await Category.find({ status: "active" }).limit(6);
+    const Categorys = await Category.find({ status: "active" });
     Object.assign(response, {
       status: 500,
       message: "Successfully",
