@@ -9,6 +9,7 @@ const userbookSchema = new mongoose.Schema(
       type: String,
       default: "active",
     },
+    quantity: Number,
     book_detail: {
       price: Number,
       date: Date,
