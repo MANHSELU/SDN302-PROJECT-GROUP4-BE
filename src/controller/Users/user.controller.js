@@ -173,7 +173,7 @@ module.exports.getcategory = async (req, res) => {
   try {
     const Categorys = await Category.find({ status: "active" });
     Object.assign(response, {
-      status: 500,
+      status: 200,
       message: "Successfully",
       data: Categorys,
     });
