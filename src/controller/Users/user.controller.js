@@ -63,7 +63,7 @@ module.exports.login = async (req, res) => {
       });
     }
   }
-  res.status(response.state).json({ response });
+  res.status(response.status).json({ response });
 };
 module.exports.register = async (req, res) => {
   try {
@@ -137,21 +137,29 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 
-module.exports.borrowBookFunction = async (req, res) => {
+module.exports.borrowBookFunction = async (req, res) => { 
   try {
-    const { bookId } = req.body;
+    const { bookId,quantityInput } = req.body;
     const book = await Book.findById(bookId);
     if (!book) {
-      return res.status(404).json({ message: "Không tìm thấy sách " });
+      return res
+      .status(404)
+      .json({ message: "Không tìm thấy sách " });
     }
     if (book.quantity <= 0) {
       return res
         .status(400)
         .json({ message: "Sách này đã hết. Vui lòng chọn sách khác" });
     }
+    if (book.quantity < quantityInput){
+      return res
+      .status(400)
+      .json({message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`});
+    }
     const userBook = new UserBook({
       user_id: res.locals.user._id,
       book_id: bookId,
+      quantity : quantityInput,
       borrow_date: new Date(),
       book_detail: {
         price: book.price,
@@ -160,7 +168,7 @@ module.exports.borrowBookFunction = async (req, res) => {
       },
     });
     await userBook.save();
-    book.quantity -= 1;
+    book.quantity -= Number(quantityInput);
     await book.save();
     res.status(200).json({ message: "Mượn sách thành công" });
   } catch (err) {
