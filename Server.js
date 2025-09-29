@@ -24,10 +24,11 @@ app.use(bodyParser.json());
 const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
 const userRouterCheck = require("./src/router/users/index.check.routes");
-
+const librarianRouterCheck = require("./src/router/Librarian/index.check.routes")
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
 userRouterCheck(app);
+librarianRouterCheck(app);
 database.connect();
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
