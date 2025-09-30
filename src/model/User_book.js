@@ -15,7 +15,7 @@ const userbookSchema = new mongoose.Schema(
       date: Date,
       status: {
         type: String,
-        enum : ["active","returned","cancelled"],
+        enum: ["active", "returned", "cancelled"],
         default: "active",
       },
       transaction_type: String,
