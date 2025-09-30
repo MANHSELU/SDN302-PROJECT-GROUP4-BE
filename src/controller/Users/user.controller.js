@@ -137,29 +137,27 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 
-module.exports.borrowBookFunction = async (req, res) => { 
+module.exports.borrowBookFunction = async (req, res) => {
   try {
-    const { bookId,quantityInput } = req.body;
+    const { bookId, quantityInput } = req.body;
     const book = await Book.findById(bookId);
     if (!book) {
-      return res
-      .status(404)
-      .json({ message: "Không tìm thấy sách " });
+      return res.status(404).json({ message: "Không tìm thấy sách " });
     }
     if (book.quantity <= 0) {
       return res
         .status(400)
         .json({ message: "Sách này đã hết. Vui lòng chọn sách khác" });
     }
-    if (book.quantity < quantityInput){
-      return res
-      .status(400)
-      .json({message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`});
+    if (book.quantity < quantityInput) {
+      return res.status(400).json({
+        message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`,
+      });
     }
     const userBook = new UserBook({
       user_id: res.locals.user._id,
       book_id: bookId,
-      quantity : quantityInput,
+      quantity: quantityInput,
       borrow_date: new Date(),
       book_detail: {
         price: book.price,
@@ -181,7 +179,7 @@ module.exports.getcategory = async (req, res) => {
   try {
     const Categorys = await Category.find({ status: "active" });
     Object.assign(response, {
-      status: 500,
+      status: 200,
       message: "Successfully",
       data: Categorys,
     });
@@ -232,4 +230,14 @@ module.exports.getauthor = async (req, res) => {
     });
   }
   return res.status(response.status).json(response);
+};
+
+module.exports.getUser = async (req, res) => {
+  console.log("đang vào profile");
+  const response = {
+    status: 200,
+    message: "Success",
+    data: res.locals.user,
+  };
+  res.status(response.status).json(response);
 };
