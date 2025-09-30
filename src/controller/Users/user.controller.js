@@ -6,6 +6,8 @@ const user = require("./../../model/User");
 const Book = require("../../model/Book");
 const UserBook = require("../../model/User_book");
 const Author = require("../../model/Author");
+const TimeSlot = require("./../../model/TimeBook");
+const { response } = require("express");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -240,4 +242,22 @@ module.exports.getUser = async (req, res) => {
     data: res.locals.user,
   };
   res.status(response.status).json(response);
+};
+module.exports.getslotTime = async (req, res) => {
+  const response = {};
+  try {
+    const timeslot = await TimeSlot.find();
+    Object.assign(response, {
+      status: 200,
+      message: "success",
+      data: timeslot,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "success",
+    });
+  }
+  return res.status(response.status).json(response);
 };
