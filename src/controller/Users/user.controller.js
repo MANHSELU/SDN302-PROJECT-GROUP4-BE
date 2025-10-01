@@ -288,23 +288,46 @@ module.exports.getTables = async (req, res) => {
   return res.status(response.status).json(response);
 };
 module.exports.getUserTable = async (req, res) => {
-  const response = {};
   try {
-    const userTable = await User_table.find({ status: "active" }).populate({
+    const time_date = req.body?.time_date; // optional chaining
+    const query = { status: "active" };
+
+    if (!time_date) {
+      return res.status(200).json({
+        status: 404,
+        message: "Not Found",
+      });
+    }
+    const d = new Date(time_date);
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth();
+    const day = d.getUTCDate();
+
+    const start = new Date(Date.UTC(y, m, day, 0, 0, 0));
+    const end = new Date(Date.UTC(y, m, day, 23, 59, 59, 999));
+
+    query.time_date = { $gte: start, $lt: end };
+
+    console.log("query là : ", query);
+    const userTable = await User_table.find(query).populate({
       path: "user_id",
       select: "-password",
     });
-    Object.assign(response, {
+
+    // response thành công
+    return res.status(200).json({
       status: 200,
       message: "success",
       data: userTable,
     });
   } catch (err) {
-    console.log("lỗi trong chương trình là : ", err);
-    Object.assign(response, {
+    console.error("Lỗi trong chương trình:", err);
+
+    // response lỗi
+    return res.status(500).json({
       status: 500,
-      message: "success",
+      message: "error",
+      error: err.message,
     });
   }
-  return res.status(response.status).json(response);
 };
