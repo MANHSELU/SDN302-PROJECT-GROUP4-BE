@@ -8,6 +8,8 @@ const UserBook = require("../../model/User_book");
 const Author = require("../../model/Author");
 const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
+const Table = require("../../model/Table");
+const User_table = require("../../model/User_table");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -251,6 +253,51 @@ module.exports.getslotTime = async (req, res) => {
       status: 200,
       message: "success",
       data: timeslot,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "success",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+module.exports.getTables = async (req, res) => {
+  const response = {};
+  try {
+    const tables = await Table.find({ status: "active", deleted: "false" });
+    if (!tables) {
+      Object.assign(response, {
+        status: 404,
+        message: "Not Found",
+      });
+    }
+    Object.assign(response, {
+      status: 200,
+      message: "Success",
+      data: tables,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trên là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Serrver error",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+module.exports.getUserTable = async (req, res) => {
+  const response = {};
+  try {
+    const userTable = await User_table.find({ status: "active" }).populate({
+      path: "user_id",
+      select: "-password",
+    });
+    Object.assign(response, {
+      status: 200,
+      message: "success",
+      data: userTable,
     });
   } catch (err) {
     console.log("lỗi trong chương trình là : ", err);
