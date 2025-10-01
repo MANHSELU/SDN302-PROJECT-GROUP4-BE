@@ -289,32 +289,31 @@ module.exports.getTables = async (req, res) => {
 };
 module.exports.getUserTable = async (req, res) => {
   try {
-    const time_date = req.body?.time_date; // optional chaining
-    const query = { status: "active" };
+    const { time_date } = req.body; // "2025-10-01"
+    console.log("time_date là:", time_date);
 
     if (!time_date) {
-      return res.status(200).json({
-        status: 404,
-        message: "Not Found",
-      });
+      return res.status(400).json({ status: 404, message: "Not Found" });
     }
-    const d = new Date(time_date);
-    const y = d.getUTCFullYear();
-    const m = d.getUTCMonth();
-    const day = d.getUTCDate();
 
-    const start = new Date(Date.UTC(y, m, day, 0, 0, 0));
-    const end = new Date(Date.UTC(y, m, day, 23, 59, 59, 999));
+    // Parse "YYYY-MM-DD" an toàn
+    const [year, month, day] = time_date.split("-").map(Number);
 
-    query.time_date = { $gte: start, $lt: end };
+    const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 
-    console.log("query là : ", query);
+    const query = {
+      status: "active",
+      time_date: { $gte: start, $lt: end },
+    };
+
+    console.log("query là:", query);
+
     const userTable = await User_table.find(query).populate({
       path: "user_id",
       select: "-password",
     });
 
-    // response thành công
     return res.status(200).json({
       status: 200,
       message: "success",

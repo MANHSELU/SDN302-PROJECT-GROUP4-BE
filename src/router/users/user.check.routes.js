@@ -6,5 +6,5 @@ routerUserCheck.post("/borrowBook", userController.borrowBookFunction);
 routerUserCheck.get("/getuser", userController.getUser);
 routerUserCheck.get("/slottime", userController.getslotTime);
 routerUserCheck.get("/getTable", userController.getTables);
-routerUserCheck.get("/getUerTable", userController.getUserTable);
+routerUserCheck.post("/getUerTable", userController.getUserTable);
 module.exports = routerUserCheck;
