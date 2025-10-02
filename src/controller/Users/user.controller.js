@@ -288,11 +288,13 @@ module.exports.getTables = async (req, res) => {
   return res.status(response.status).json(response);
 };
 module.exports.getUserTable = async (req, res) => {
+  console.log("đang vào useTable");
   try {
-    const { time_date } = req.body; // "2025-10-01"
+    const { time_date, table_id } = req.body; // "2025-10-01"
     console.log("time_date là:", time_date);
+    console.log("table _id là : ", table_id);
 
-    if (!time_date) {
+    if (!time_date || !table_id) {
       return res.status(400).json({ status: 404, message: "Not Found" });
     }
 
@@ -304,6 +306,7 @@ module.exports.getUserTable = async (req, res) => {
 
     const query = {
       status: "active",
+      table_id: table_id,
       time_date: { $gte: start, $lt: end },
     };
 
@@ -329,4 +332,58 @@ module.exports.getUserTable = async (req, res) => {
       error: err.message,
     });
   }
+};
+
+module.exports.postUserTable = async (req, res) => {
+  const { table_id, time_date, slot_time } = req.body;
+  console.log("req.body là : ", table_id, time_date, slot_time);
+
+  const [year, month, day] = time_date.split("-").map(Number);
+
+  const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+
+  let userTable = await User_table.findOne({
+    user_id: res.locals.user.id,
+    table_id: table_id,
+    time_date: { $gte: start, $lt: end },
+  });
+
+  if (!userTable) {
+    console.log("chạy vào if");
+    userTable = new User_table({
+      user_id: res.locals._id,
+      table_id,
+      time_slot: Array.isArray(slot_time) ? slot_time : [slot_time],
+      time_date: start, // lưu ngày chuẩn
+      status: "active",
+    });
+    await userTable.save();
+    console.log("✅ Tạo mới lịch:", userTable);
+  } else {
+    // Nếu đã có -> push thêm slot_time (tránh trùng lặp)
+    const newSlots = Array.isArray(slot_time) ? slot_time : [slot_time];
+    userTable.time_slot = Array.from(
+      new Set([...userTable.time_slot, ...newSlots])
+    );
+    await userTable.save();
+    console.log("✅ Cập nhật slot_time:", userTable);
+  }
+  const query = {
+    status: "active",
+    table_id: table_id,
+    time_date: { $gte: start, $lt: end },
+  };
+
+  console.log("query là:", query);
+
+  const newuserTable = await User_table.find(query).populate({
+    path: "user_id",
+    select: "-password",
+  });
+  return res.status(200).json({
+    status: 200,
+    message: "success",
+    data: newuserTable,
+  });
 };
