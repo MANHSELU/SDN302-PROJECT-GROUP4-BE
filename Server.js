@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
 const userRouterCheck = require("./src/router/users/index.check.routes");
-const librarianRouterCheck = require("./src/router/Librarian/index.check.routes")
+const librarianRouterCheck = require("./src/router/Librarian/index.check.routes");
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
 userRouterCheck(app);

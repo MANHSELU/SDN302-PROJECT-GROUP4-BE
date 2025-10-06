@@ -25,6 +25,14 @@ module.exports.login = async (req, res) => {
         email: email,
         status: "active",
       });
+      if (!users) {
+        console.log("không tồn tại user");
+        Object.assign(response, {
+          status: 404,
+          message: "Not Found",
+        });
+        res.status(response.status).json({ response });
+      }
       const result = bcrypt.compareSync(password, users.password);
       if (!result) {
         Object.assign(response, {
@@ -386,4 +394,57 @@ module.exports.postUserTable = async (req, res) => {
     message: "success",
     data: newuserTable,
   });
+};
+
+module.exports.updateProfile = async (req, res) => {
+  try {
+    const me = await user.findById(res.locals.user._id);
+    if (!me) return res.status(404).json({ message: "User not found" });
+    const { fullname, phone } = req.body;
+    if (fullname !== undefined) me.fullname = fullname;
+    if (phone !== undefined) me.phone = phone;
+
+    // Nếu có file avatar, upload lên Cloudinary
+    if (req.file && req.file.buffer) {
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "profiles" },
+          (err, result) => (err ? reject(err) : resolve(result))
+        );
+        stream.end(req.file.buffer);
+      });
+      me.avatar = uploaded.secure_url;
+    }
+
+    await me.save();
+    const safe = await user.findById(me._id).select("-password -refresh_token");
+    return res.json({ message: "Profile updated", data: safe });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+};
+
+// PUT /api/user/check/profile/password
+module.exports.changePassword = async (req, res) => {
+  try {
+    const me = await user.findById(res.locals.user._id);
+    if (!me) return res.status(404).json({ message: "User not found" });
+    const { oldPassword, newPassword, confirmNewPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({ message: "Missing password fields" });
+    }
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ message: "New password mismatch" });
+    }
+
+    const ok = bcrypt.compareSync(oldPassword, me.password);
+    if (!ok) return res.status(400).json({ message: "Old password incorrect" });
+
+    me.password = bcrypt.hashSync(newPassword, 10);
+    await me.save();
+    return res.json({ message: "Password updated" });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 };
