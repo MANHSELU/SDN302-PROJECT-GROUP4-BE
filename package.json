@@ -2,6 +2,7 @@
   "dependencies": {
     "bcrypt": "^5.1.0",
     "body-parser": "^2.2.0",
+    "cloudinary": "^1.21.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
@@ -9,6 +10,7 @@
     "mongoose": "^8.18.1",
     "mongoose-slug-updater": "^2.4.0",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemon": "^3.1.10"
   },
   "scripts": {
