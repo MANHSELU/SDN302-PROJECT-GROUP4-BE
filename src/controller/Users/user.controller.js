@@ -10,6 +10,7 @@ const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
 const Table = require("../../model/Table");
 const User_table = require("../../model/User_table");
+const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -77,6 +78,7 @@ module.exports.login = async (req, res) => {
   }
   res.status(response.status).json({ response });
 };
+//đăng ký
 module.exports.register = async (req, res) => {
   try {
     var { fullname, email, password, phone, role_id } = req.body;
@@ -148,7 +150,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
+// mượn sách
 module.exports.borrowBookFunction = async (req, res) => {
   try {
     const { bookId, quantityInput } = req.body;
@@ -185,7 +187,7 @@ module.exports.borrowBookFunction = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
+// lấy ra loại sách
 module.exports.getcategory = async (req, res) => {
   const response = {};
   try {
@@ -225,6 +227,7 @@ module.exports.getNewBook = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra tác giả
 module.exports.getauthor = async (req, res) => {
   const response = {};
   try {
@@ -243,7 +246,7 @@ module.exports.getauthor = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
-
+// lấy ra profile
 module.exports.getUser = async (req, res) => {
   console.log("đang vào profile");
   const response = {
@@ -253,6 +256,7 @@ module.exports.getUser = async (req, res) => {
   };
   res.status(response.status).json(response);
 };
+// lấy ra giờ đặt bàn
 module.exports.getslotTime = async (req, res) => {
   const response = {};
   try {
@@ -271,6 +275,7 @@ module.exports.getslotTime = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra bàn
 module.exports.getTables = async (req, res) => {
   const response = {};
   try {
@@ -295,6 +300,7 @@ module.exports.getTables = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra người dùng danh sách bàn
 module.exports.getUserTable = async (req, res) => {
   console.log("đang vào useTable");
   try {
@@ -342,6 +348,7 @@ module.exports.getUserTable = async (req, res) => {
   }
 };
 
+// đặt bàn
 module.exports.postUserTable = async (req, res) => {
   const { table_id, time_date, slot_time } = req.body;
   console.log("req.body là : ", table_id, time_date, slot_time);
