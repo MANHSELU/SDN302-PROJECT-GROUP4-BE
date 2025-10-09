@@ -274,7 +274,7 @@ module.exports.getslotTime = async (req, res) => {
 module.exports.getTables = async (req, res) => {
   const response = {};
   try {
-    const tables = await Table.find({ status: "active", deleted: "false" });
+    const tables = await Table.find({ status: "active", deleted: false });
     if (!tables) {
       Object.assign(response, {
         status: 404,
