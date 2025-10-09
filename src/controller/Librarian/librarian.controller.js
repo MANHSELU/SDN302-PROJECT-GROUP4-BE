@@ -176,15 +176,17 @@ module.exports.DeleteBook = async (req, res) => {
 };
 module.exports.GetAllBook = async (req, res) => {
   try {
-    const allBook = await Book.find().populate("categori_id","title").populate("authors","name");
+    const allBook = await Book.find()
+      .populate("categori_id", "title")
+      .populate("authors", "name");
     if (!allBook) {
       return res.status(404).json({ message: "Không tìm thấy sách." });
     }
-    return res
-      .status(200)
-      .json(allBook);
+    return res.status(200).json(allBook);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
 // Tạo bàn
 module.exports.createTable = async (req, res) => {
   try {
