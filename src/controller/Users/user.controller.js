@@ -94,6 +94,10 @@ module.exports.register = async (req, res) => {
       phone,
       role_id: role_id || null,
     });
+    if (!req.body.avatar) {
+      req.body.avatar =
+        "https://res.cloudinary.com/dmdogr8na/image/upload/v1746949468/hnrnjeaoymnbudrzs7v9.jpg";
+    }
     await newUser.save();
     return res.status(201).json({
       message: "User registered successfully",
@@ -107,6 +111,7 @@ module.exports.register = async (req, res) => {
 module.exports.findAndFilterProductPaginated = async (req, res) => {
   try {
     const { categoryTitle = "", keyword = "", page = 1 } = req.query;
+    console.log("req.query là : ", keyword, page, categoryTitle);
     const pageSize = 10;
     const skip = (page - 1) * pageSize; // ==> Bỏ qua sản phẩm để phân trang,Ví dụ: page = 2, limit = 5 → skip = 5
     // → bỏ 5 sản phẩm đầu, lấy sản phẩm từ thứ 6 trở đi.
@@ -136,6 +141,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
           p.categori_id.some((cat) => String(cat._id) === String(category._id))
       );
     }
+    console.log("sản phẩm trả về là : ", allProducts);
     const paginatedProducts = allProducts.slice(skip, skip + pageSize);
     const totalItems = allProducts.length;
     const totalPages = Math.ceil(totalItems / pageSize); // Tính tổng số page dựa trên sản phẩm đã tính
@@ -174,7 +180,7 @@ module.exports.borrowBookFunction = async (req, res) => {
       quantity: quantityInput,
       borrow_date: new Date(),
       book_detail: {
-        price: book.price,
+        price: book.price * quantityInput,
         date: book.date,
         transaction_type: "Booking_book",
       },
@@ -279,7 +285,7 @@ module.exports.getslotTime = async (req, res) => {
 module.exports.getTables = async (req, res) => {
   const response = {};
   try {
-    const tables = await Table.find({ status: "active", deleted: "false" });
+    const tables = await Table.find({ status: "active", deleted: false });
     if (!tables) {
       Object.assign(response, {
         status: 404,
