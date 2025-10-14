@@ -2,7 +2,96 @@ const Book = require("../../model/Book");
 const userBook = require("../../model/User_book");
 const cloudinary = require("../../config/cloudinaryConfig");
 const Table = require("../../model/Table");
+const user = require("./../../model/User");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+//login thủ thư
+module.exports.login = async (req, res) => {
+  console.log("đang chạy vào login");
+  const { email, password } = req.body;
+  console.log("email và password là : ", email, password);
+  const response = {};
+  if (!email || !password) {
+    Object.assign(response, {
+      state: 404,
+      message: "Email hoặc mật khẩu không được bỏ trống",
+    });
+  } else {
+    try {
+      const users = await user.findOne({ email });
+      console.log("user là : ", users);
+      // Không tìm thấy user
+      if (!users) {
+        Object.assign(response, {
+          state: 404,
+          message: "Email không tồn tại",
+        });
+      }
 
+      // Check role_id nếu đây là login admin
+      else if (users.role_id.toString() !== "68204b309bd5898e0b648bd6") {
+        Object.assign(response, {
+          state: 403,
+          message: "Bạn không có quyền truy cập trang Admin",
+        });
+      }
+      // Check mật khẩu
+      else {
+        const result = bcrypt.compareSync(password, users.password);
+        if (!result) {
+          Object.assign(response, {
+            state: 400,
+            message: "Sai mật khẩu",
+          });
+        } else {
+          const accesstoken = jwt.sign(
+            { userId: users.id, roleId: users.role_id },
+            process.env.JWT_SECRET,
+            {
+              expiresIn: process.env.JWT_EXPRIRE,
+            }
+          );
+          const refresh_token = jwt.sign(
+            { random: new Date().getTime + Math.random() },
+            process.env.JWT_SECRET,
+            {
+              expiresIn: process.env.JWT_REFRESH_JWT_EXPRIRE,
+            }
+          );
+          await user.updateOne(
+            { _id: users },
+            {
+              refresh_token: refresh_token,
+            }
+          );
+          Object.assign(response, {
+            state: 200,
+            message: "Success",
+            access_Token: accesstoken,
+            refresh_token: refresh_token,
+          });
+        }
+      }
+    } catch (e) {
+      console.log("Lỗi server:", e.message);
+      Object.assign(response, {
+        state: 500,
+        message: "Lỗi server",
+      });
+    }
+  }
+  res.status(response.state).json({ response });
+};
+
+// profile
+module.exports.getProfile = async (req, res) => {
+  const response = {
+    status: 200,
+    message: "Success",
+    data: res.locals.user,
+  };
+  res.status(response.status).json(response);
+};
 //Hàm trả sách
 module.exports.returnBorrowBook = async (req, res) => {
   try {
@@ -175,6 +264,7 @@ module.exports.DeleteBook = async (req, res) => {
   }
 };
 module.exports.GetAllBook = async (req, res) => {
+  console.log("chạy vào getallboook");
   try {
     const allBook = await Book.find()
       .populate("categori_id", "title")
@@ -210,6 +300,7 @@ module.exports.createTable = async (req, res) => {
 
 // Danh sách
 module.exports.listTables = async (req, res) => {
+  console.log("chạy vào list table ");
   try {
     const { page = 1, limit = 10, includeDeleted = "false" } = req.query;
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);

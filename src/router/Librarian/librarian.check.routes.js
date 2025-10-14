@@ -4,6 +4,7 @@ const LibrarianController = require("../../controller/Librarian/librarian.contro
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
 
+routerLibCheck.get("/profile", LibrarianController.getProfile);
 routerLibCheck.patch("/returnBook", LibrarianController.returnBorrowBook);
 routerLibCheck.post(
   "/addNewBooks",

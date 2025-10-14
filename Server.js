@@ -25,9 +25,11 @@ const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
 const userRouterCheck = require("./src/router/users/index.check.routes");
 const librarianRouterCheck = require("./src/router/Librarian/index.check.routes");
+const librarianRouterNotCheck = require("./src/router/Librarian/index.notcheck.routes");
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
 userRouterCheck(app);
+librarianRouterNotCheck(app);
 librarianRouterCheck(app);
 database.connect();
 app.listen(port, () => {
