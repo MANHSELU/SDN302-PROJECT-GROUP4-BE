@@ -12,6 +12,11 @@ module.exports.checkaccount = async (req, res, next) => {
   } else {
     try {
       const decode = jwt.verify(token, process.env.JWT_SECRET); // bỏi vì mình mã hóa có 2 giá trị
+      if (decode.roleId != "") {
+        return res
+          .status(401)
+          .json({ message: " authorization denied , no Chuyengia" });
+      }
       const users = await user
         .findOne({ _id: decode.userId })
         .select("-password -refresh_token");
