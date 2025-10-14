@@ -2,7 +2,7 @@ const Book = require("../../model/Book");
 const userBook = require("../../model/User_book");
 const cloudinary = require("../../config/cloudinaryConfig");
 const Table = require("../../model/Table");
-
+const Message = require("../../model/Messages");
 //Hàm trả sách
 module.exports.returnBorrowBook = async (req, res) => {
   try {
@@ -336,3 +336,41 @@ module.exports.deleteTable = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+
+
+module.exports.sendMessage = async (req, res) => {
+  try{
+    // const senderIdInput = res.locals.user.id; 
+    const {userIdInput} = req.params;
+    const {contentInput,senderIdInput} = req.body; // Dùng body để test trước 
+    const message = new Message({
+    sender_id: senderIdInput,
+    receiver_id: userIdInput,
+    content: contentInput,
+    read: false,
+  });
+  await message.save();
+  res.status(200).json({message: "Gửi tin nhắn thành công",data: message});
+  }catch(err){
+    res.status(500).json({error: err.message});
+  }
+};
+
+
+module.exports.getMessageHistory = async(req, res) => {
+  try {
+    // const senderIdInput = res.locals.user.id;
+    const {senderIdInput} = req.body; // Dùng body để test trước
+    const {userIdInput} = req.params;
+    const messages = await Message.find({
+      $or: [
+        {sender_id: senderIdInput, receiver_id: userIdInput},
+        {sender_id: userIdInput, receiver_id: senderIdInput}
+      ]
+    }).sort({createdAt: 1});
+    res.status(200).json({message: "Lịch sử tin nhắn", data: messages});
+  } catch (error) {
+  }
+};
+

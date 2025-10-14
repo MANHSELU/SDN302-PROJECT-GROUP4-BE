@@ -10,6 +10,8 @@ const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
 const Table = require("../../model/Table");
 const User_table = require("../../model/User_table");
+const Message = require("../../model/Messages");
+const Role = require("../../model/Role");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -446,5 +448,45 @@ module.exports.changePassword = async (req, res) => {
     return res.json({ message: "Password updated" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
+  }
+};
+
+
+module.exports.sendMessage = async (req, res) => {
+  try{
+    // const senderIdInput = res.locals.user.id; 
+    const {librarianIdInput} = req.params;
+    const {contentInput,senderIdInput} = req.body; // Dùng body để test trước 
+    const librarian = await user.findOne({_id: librarianIdInput, status: "active"}).populate({path : "role_id",match: {title: "LIBRARIAN"}});
+    if(!librarian){
+      return res.status(404).json({message: "Không tìm thấy thủ thư"});
+    }
+    const message = new Message({
+    sender_id: senderIdInput,
+    receiver_id: librarianIdInput,
+    content: contentInput,
+    read: false,
+  });
+  await message.save();
+  res.status(200).json({message: "Gửi tin nhắn thành công",data: message});
+  }catch(err){
+    res.status(500).json({error: err.message});
+  }
+};
+
+
+module.exports.getMessageHistory = async(req, res) => {
+  try {
+    // const senderIdInput = res.locals.user.id;
+    const {senderIdInput} = req.body; // Dùng body để test trước
+    const {librarianIdInput} = req.params;
+    const messages = await Message.find({
+      $or: [
+        {sender_id: senderIdInput, receiver_id: librarianIdInput},
+        {sender_id: librarianIdInput, receiver_id: senderIdInput}
+      ]
+    }).sort({createdAt: 1});
+    res.status(200).json({message: "Lịch sử tin nhắn", data: messages});
+  } catch (error) {
   }
 };

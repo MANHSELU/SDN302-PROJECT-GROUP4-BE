@@ -31,5 +31,6 @@ routerLibCheck.delete("/tables/:id", LibrarianController.deleteTable);
 //khôi phục (restore) + xóa hẳn (hard delete)
 routerLibCheck.patch("/tables/:id/restore", LibrarianController.restoreTable);
 routerLibCheck.delete("/tables/:id/hard", LibrarianController.hardDeleteTable);
-
+routerLibCheck.post("/sendMessages/:userIdInput", LibrarianController.sendMessage);
+routerLibCheck.get("/messageHistories/:userIdInput", LibrarianController.getMessageHistory);
 module.exports = routerLibCheck;

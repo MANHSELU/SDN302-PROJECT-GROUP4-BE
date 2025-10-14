@@ -14,4 +14,6 @@ routerUserCheck.put(
   userController.updateProfile
 );
 routerUserCheck.put("/profile/password", userController.changePassword);
+routerUserCheck.post("/sendMessage/:librarianIdInput", userController.sendMessage);
+routerUserCheck.get("/messageHistory/:librarianIdInput", userController.getMessageHistory);
 module.exports = routerUserCheck;
