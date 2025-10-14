@@ -5,6 +5,8 @@ const Table = require("../../model/Table");
 const user = require("./../../model/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const Author = require("./../../model/Author");
+const Category = require("./../../model/Category");
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -152,17 +154,22 @@ module.exports.AddNewBooks = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Không được để trống các ô." });
     }
-    if (!req.files || req.files.length < 5) {
+    console.log("1");
+    console.log("req file là : ", req.files);
+    if (!req.files || req.files.length < 2) {
       return res.status(400).json({ message: "Phải upload ít nhất 5 ảnh." });
     }
+    console.log("2");
     if (quantityInput <= 0) {
       return res.status(400).json({ message: "Số lượng sách phải lớn hơn 0." });
     }
+    console.log("3");
     if (priceInput <= 0) {
       return res
         .status(400)
         .json({ message: "Giá tiền của sách phải lơn hơn 0." });
     }
+    console.log("5");
     const imgUrls = [];
     for (const file of req.files) {
       const uploadResult = await new Promise((resolve, reject) => {
@@ -426,4 +433,41 @@ module.exports.deleteTable = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
+};
+// lấy ra tác giả
+module.exports.getauthor = async (req, res) => {
+  const response = {};
+  try {
+    const Categorys = await Category.find({ status: "active" });
+    Object.assign(response, {
+      status: 200,
+      message: "Successfully",
+      data: Categorys,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình là: ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Serrver error",
+    });
+  }
+  return res.status(response.status).json(response);
+};
+module.exports.getcategory = async (req, res) => {
+  const response = {};
+  try {
+    const Authors = await Author.find({ status: "active" });
+    Object.assign(response, {
+      status: 200,
+      message: "success",
+      data: Authors,
+    });
+  } catch (err) {
+    console.log("lỗi trong chương trình trên là : ", err);
+    Object.assign(response, {
+      status: 500,
+      message: "Server error",
+    });
+  }
+  return res.status(response.status).json(response);
 };

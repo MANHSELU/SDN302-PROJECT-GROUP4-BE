@@ -32,5 +32,6 @@ routerLibCheck.delete("/tables/:id", LibrarianController.deleteTable);
 //khôi phục (restore) + xóa hẳn (hard delete)
 routerLibCheck.patch("/tables/:id/restore", LibrarianController.restoreTable);
 routerLibCheck.delete("/tables/:id/hard", LibrarianController.hardDeleteTable);
-
+routerLibCheck.get("/category", LibrarianController.getauthor);
+routerLibCheck.get("/getauthor", LibrarianController.getcategory);
 module.exports = routerLibCheck;
