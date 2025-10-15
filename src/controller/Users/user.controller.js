@@ -10,6 +10,7 @@ const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
 const Table = require("../../model/Table");
 const User_table = require("../../model/User_table");
+const cloudinary = require("../../config/cloudinary");
 const Message = require("../../model/Messages");
 const Role = require("../../model/Role");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
@@ -79,6 +80,7 @@ module.exports.login = async (req, res) => {
   }
   res.status(response.status).json({ response });
 };
+//đăng ký
 module.exports.register = async (req, res) => {
   try {
     var { fullname, email, password, phone, role_id } = req.body;
@@ -94,6 +96,10 @@ module.exports.register = async (req, res) => {
       phone,
       role_id: role_id || null,
     });
+    if (!req.body.avatar) {
+      req.body.avatar =
+        "https://res.cloudinary.com/dmdogr8na/image/upload/v1746949468/hnrnjeaoymnbudrzs7v9.jpg";
+    }
     await newUser.save();
     return res.status(201).json({
       message: "User registered successfully",
@@ -107,6 +113,7 @@ module.exports.register = async (req, res) => {
 module.exports.findAndFilterProductPaginated = async (req, res) => {
   try {
     const { categoryTitle = "", keyword = "", page = 1 } = req.query;
+    console.log("req.query là : ", keyword, page, categoryTitle);
     const pageSize = 10;
     const skip = (page - 1) * pageSize; // ==> Bỏ qua sản phẩm để phân trang,Ví dụ: page = 2, limit = 5 → skip = 5
     // → bỏ 5 sản phẩm đầu, lấy sản phẩm từ thứ 6 trở đi.
@@ -136,6 +143,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
           p.categori_id.some((cat) => String(cat._id) === String(category._id))
       );
     }
+    console.log("sản phẩm trả về là : ", allProducts);
     const paginatedProducts = allProducts.slice(skip, skip + pageSize);
     const totalItems = allProducts.length;
     const totalPages = Math.ceil(totalItems / pageSize); // Tính tổng số page dựa trên sản phẩm đã tính
@@ -150,7 +158,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
+// mượn sách
 module.exports.borrowBookFunction = async (req, res) => {
   try {
     const { bookId, quantityInput } = req.body;
@@ -174,7 +182,7 @@ module.exports.borrowBookFunction = async (req, res) => {
       quantity: quantityInput,
       borrow_date: new Date(),
       book_detail: {
-        price: book.price,
+        price: book.price * quantityInput,
         date: book.date,
         transaction_type: "Booking_book",
       },
@@ -187,7 +195,7 @@ module.exports.borrowBookFunction = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
+// lấy ra loại sách
 module.exports.getcategory = async (req, res) => {
   const response = {};
   try {
@@ -227,6 +235,7 @@ module.exports.getNewBook = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra tác giả
 module.exports.getauthor = async (req, res) => {
   const response = {};
   try {
@@ -245,7 +254,7 @@ module.exports.getauthor = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
-
+// lấy ra profile
 module.exports.getUser = async (req, res) => {
   console.log("đang vào profile");
   const response = {
@@ -255,6 +264,7 @@ module.exports.getUser = async (req, res) => {
   };
   res.status(response.status).json(response);
 };
+// lấy ra giờ đặt bàn
 module.exports.getslotTime = async (req, res) => {
   const response = {};
   try {
@@ -273,6 +283,7 @@ module.exports.getslotTime = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra bàn
 module.exports.getTables = async (req, res) => {
   const response = {};
   try {
@@ -297,6 +308,7 @@ module.exports.getTables = async (req, res) => {
   }
   return res.status(response.status).json(response);
 };
+// lấy ra người dùng danh sách bàn
 module.exports.getUserTable = async (req, res) => {
   console.log("đang vào useTable");
   try {
@@ -344,6 +356,7 @@ module.exports.getUserTable = async (req, res) => {
   }
 };
 
+// đặt bàn
 module.exports.postUserTable = async (req, res) => {
   const { table_id, time_date, slot_time } = req.body;
   console.log("req.body là : ", table_id, time_date, slot_time);
@@ -451,42 +464,43 @@ module.exports.changePassword = async (req, res) => {
   }
 };
 
-
 module.exports.sendMessage = async (req, res) => {
-  try{
-    // const senderIdInput = res.locals.user.id; 
-    const {librarianIdInput} = req.params;
-    const {contentInput,senderIdInput} = req.body; // Dùng body để test trước 
-    const librarian = await user.findOne({_id: librarianIdInput, status: "active"}).populate({path : "role_id",match: {title: "LIBRARIAN"}});
-    if(!librarian){
-      return res.status(404).json({message: "Không tìm thấy thủ thư"});
+  try {
+    // const senderIdInput = res.locals.user.id;
+    const {senderIdInput} = req.body;
+    const { contentInput } = req.body; // Dùng body để test trước
+    const librarian = await user.findOne({ status: "active" }).populate({path: "role_id",match: {title: "LIBRARIAN"},})
+      .where("role_id")
+      .ne(null);
+    if (!librarian) {
+      return res.status(404).json({ message: "Không tìm thấy thủ thư" });
     }
     const message = new Message({
-    sender_id: senderIdInput,
-    receiver_id: librarianIdInput,
-    content: contentInput,
-    read: false,
-  });
-  await message.save();
-  res.status(200).json({message: "Gửi tin nhắn thành công",data: message});
-  }catch(err){
-    res.status(500).json({error: err.message});
+      sender_id: senderIdInput,
+      receiver_id: librarian._id,
+      content: contentInput,
+      read: false,
+    });
+    await message.save();
+    res.status(200).json({ message: "Gửi tin nhắn thành công", data: message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-
-module.exports.getMessageHistory = async(req, res) => {
+module.exports.getMessageHistory = async (req, res) => {
   try {
-    // const senderIdInput = res.locals.user.id;
-    const {senderIdInput} = req.body; // Dùng body để test trước
-    const {librarianIdInput} = req.params;
+    // const { senderIdInput } = res.locals.user.id;
+        const {senderIdInput} = req.body;
+       const librarian = await user.findOne({ status: "active" }).populate({path: "role_id",match: {title: "LIBRARIAN"},})
+      .where("role_id")
+      .ne(null);
     const messages = await Message.find({
       $or: [
-        {sender_id: senderIdInput, receiver_id: librarianIdInput},
-        {sender_id: librarianIdInput, receiver_id: senderIdInput}
-      ]
-    }).sort({createdAt: 1});
-    res.status(200).json({message: "Lịch sử tin nhắn", data: messages});
-  } catch (error) {
-  }
+        { sender_id: senderIdInput, receiver_id: librarian._id },
+        { sender_id: librarian._id, receiver_id: senderIdInput },
+      ],
+    }).sort({ createdAt: 1 });
+    res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
+  } catch (error) {}
 };

@@ -15,9 +15,7 @@ const corsOptions = {
   },
   credentials: true,
 };
-
 app.use(cors(corsOptions));
-
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -25,11 +23,18 @@ const adminRouterNotCheck = require("./src/router/Admin/index.notcheck.routes");
 const userRouterNotCheck = require("./src/router/users/index.notcheck.routes");
 const userRouterCheck = require("./src/router/users/index.check.routes");
 const librarianRouterCheck = require("./src/router/Librarian/index.check.routes");
+const librarianRouterNotCheck = require("./src/router/Librarian/index.notcheck.routes");
+const { initWebSocket } = require("./src/config/websocket");
+const http = require("http");
+const server = http.createServer(app);
+initWebSocket(server);
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
 userRouterCheck(app);
+librarianRouterNotCheck(app);
 librarianRouterCheck(app);
 database.connect();
-app.listen(port, () => {
+initWebSocket(server);
+server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
