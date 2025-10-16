@@ -10,6 +10,7 @@ const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
 const Table = require("../../model/Table");
 const User_table = require("../../model/User_table");
+const FaouriteBook = require("../../model/FaouriteBook");
 const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
@@ -437,27 +438,220 @@ module.exports.updateProfile = async (req, res) => {
   }
 };
 
-// PUT /api/user/check/profile/password
+// change pass
 module.exports.changePassword = async (req, res) => {
   try {
     const me = await user.findById(res.locals.user._id);
-    if (!me) return res.status(404).json({ message: "User not found" });
+    if (!me)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
     const { oldPassword, newPassword, confirmNewPassword } = req.body;
 
     if (!oldPassword || !newPassword || !confirmNewPassword) {
-      return res.status(400).json({ message: "Missing password fields" });
+      return res.status(400).json({ message: "Thiếu thông tin mật khẩu" });
     }
     if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({ message: "New password mismatch" });
+      return res.status(400).json({ message: "Mật khẩu mới không khớp" });
     }
 
     const ok = bcrypt.compareSync(oldPassword, me.password);
-    if (!ok) return res.status(400).json({ message: "Old password incorrect" });
+    if (!ok) return res.status(400).json({ message: "Mật khẩu cũ không đúng" });
 
     me.password = bcrypt.hashSync(newPassword, 10);
     await me.save();
-    return res.json({ message: "Password updated" });
+    return res.json({ message: "Đã cập nhật mật khẩu" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
+  }
+};
+
+// GET fav book
+module.exports.getFavouriteBooks = async (req, res) => {
+  try {
+    const userId = res.locals.user?._id;
+    if (!userId) return res.status(401).json({ message: "Chưa được xác thực" });
+
+    const keyword = (req.query.keyword || "").trim();
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const baseBookFilter = { status: "active", deleted: false };
+    let bookIdFilter = {};
+    if (keyword) {
+      baseBookFilter.title = { $regex: keyword, $options: "i" };
+    }
+    const bookIds = await Book.find(baseBookFilter).select("_id").lean();
+    if (bookIds.length === 0) {
+      return res.status(200).json({
+        message: "Thành công",
+        keyword,
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+        count: 0,
+        data: [],
+      });
+    }
+    bookIdFilter.book_id = { $in: bookIds.map((b) => b._id) };
+
+    const favFilter = {
+      user_id: userId,
+      deleted: false,
+      ...bookIdFilter,
+    };
+
+    const total = await FaouriteBook.countDocuments(favFilter);
+
+    const favourites = await FaouriteBook.find(favFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "book_id",
+        match: { status: "active", deleted: false },
+        select: "title image authors price quantity slug published_year",
+        populate: { path: "authors", select: "name" },
+      })
+      .lean();
+
+    const data = favourites
+      .filter((f) => f.book_id)
+      .map((f) => {
+        const b = f.book_id;
+        let authorsName = [];
+        if (b && b.authors) {
+          if (Array.isArray(b.authors)) {
+            authorsName = b.authors.map((a) => a.name);
+          } else {
+            authorsName = b.authors.name ? [b.authors.name] : [];
+          }
+        }
+        return {
+          favouriteId: f._id,
+          createdAt: f.createdAt,
+          book: {
+            ...b,
+            authorsName,
+          },
+        };
+      });
+
+    return res.status(200).json({
+      message: "Thành công",
+      keyword,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      count: data.length,
+      data,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// POST fav book
+module.exports.addFavouriteBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { bookId } = req.body;
+    if (!bookId) return res.status(400).json({ message: "Thiếu bookId" });
+    const { Types } = require("mongoose");
+    if (!Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ message: "bookId không hợp lệ" });
+    }
+
+    const book = await Book.findOne({
+      _id: bookId,
+      status: "active",
+      deleted: false,
+    });
+    if (!book) return res.status(404).json({ message: "Không tìm thấy sách" });
+
+    let fav = await FaouriteBook.findOne({ user_id: userId, book_id: bookId });
+
+    if (fav && !fav.deleted) {
+      return res.status(409).json({ message: "Sách đã có trong yêu thích" });
+    }
+
+    let restored = false;
+    if (fav && fav.deleted) {
+      fav.deleted = false;
+      await fav.save();
+      restored = true;
+    }
+
+    if (!fav) {
+      fav = await FaouriteBook.create({ user_id: userId, book_id: bookId });
+    }
+
+    const populated = await fav.populate({
+      path: "book_id",
+      select: "title image authors quantity price slug published_year",
+      populate: { path: "authors", select: "name" },
+    });
+
+    const b = populated.book_id;
+    const authorsName = b?.authors
+      ? Array.isArray(b.authors)
+        ? b.authors.map((a) => a.name)
+        : b.authors.name
+        ? [b.authors.name]
+        : []
+      : [];
+
+    return res.status(restored ? 200 : 201).json({
+      message: restored
+        ? "Đã khôi phục vào yêu thích"
+        : "Đã thêm vào yêu thích",
+      data: {
+        favouriteId: fav._id,
+        createdAt: fav.createdAt,
+        book: {
+          ...(b.toObject?.() || b),
+          authorsName,
+        },
+      },
+    });
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(409).json({ message: "Sách đã có trong yêu thích" });
+    }
+    return res.status(500).json({ message: e.message });
+  }
+};
+
+// DELETE fav book
+module.exports.deleteFavouriteBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { bookId } = req.params;
+    if (!bookId)
+      return res.status(400).json({ message: "Thiếu tham số bookId" });
+    const { Types } = require("mongoose");
+    if (!Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ message: "bookId không hợp lệ" });
+    }
+
+    const fav = await FaouriteBook.findOne({
+      user_id: userId,
+      book_id: bookId,
+      deleted: false,
+    });
+    if (!fav)
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy trong yêu thích" });
+
+    fav.deleted = true;
+    await fav.save();
+    return res.json({ message: "Đã xóa khỏi yêu thích" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
   }
 };

@@ -14,4 +14,12 @@ routerUserCheck.put(
   userController.updateProfile
 );
 routerUserCheck.put("/profile/password", userController.changePassword);
+// Fav book
+routerUserCheck.get("/favourite", userController.getFavouriteBooks);
+routerUserCheck.post("/favourite", userController.addFavouriteBook);
+routerUserCheck.delete(
+  "/favourite/:bookId",
+  userController.deleteFavouriteBook
+);
+
 module.exports = routerUserCheck;
