@@ -20,6 +20,7 @@ routerLibCheck.delete(
   LibrarianController.DeleteBook
 );
 routerLibCheck.get("/getAllBooks", LibrarianController.GetAllBook);
+
 routerLibCheck.post("/changebook/:id", LibrarianController.changeBook);
 routerLibCheck.patch("/returnBook", LibrarianController.returnBorrowBook);
 
@@ -35,4 +36,6 @@ routerLibCheck.patch("/tables/:id/restore", LibrarianController.restoreTable);
 routerLibCheck.delete("/tables/:id/hard", LibrarianController.hardDeleteTable);
 routerLibCheck.get("/category", LibrarianController.getauthor);
 routerLibCheck.get("/getauthor", LibrarianController.getcategory);
+routerLibCheck.get("/orders/books", LibrarianController.listBookOrders);
+routerLibCheck.get("/orders/tables", LibrarianController.listTableOrders);
 module.exports = routerLibCheck;

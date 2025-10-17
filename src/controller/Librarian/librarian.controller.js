@@ -7,6 +7,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Author = require("./../../model/Author");
 const Category = require("./../../model/Category");
+const UserTable = require("../../model/User_table");
+const mongoose = require("mongoose");
+
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -518,4 +521,187 @@ module.exports.getcategory = async (req, res) => {
     });
   }
   return res.status(response.status).json(response);
+};
+
+// Danh sách đặt sách
+module.exports.listBookOrders = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      userId,
+      bookId,
+      fromDate,
+      toDate,
+      includeDeleted = "false",
+      includeTotal = "false", // 'true' => trả kèm totalPrice
+    } = req.query;
+
+    const includeTotalBool = String(includeTotal) === "true";
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Validate ObjectId
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "userId không hợp lệ" });
+    }
+    if (bookId && !mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ message: "bookId không hợp lệ" });
+    }
+
+    // Build filter
+    const filter = {};
+    if (includeDeleted !== "true") filter.deleted = false;
+    if (status) filter.status = status;
+    if (userId) filter.user_id = userId;
+    if (bookId) filter.book_id = bookId;
+
+    // Date range on borrow_date
+    if (fromDate || toDate) {
+      filter.borrow_date = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (Number.isNaN(from.getTime())) {
+          return res.status(400).json({ message: "fromDate không hợp lệ" });
+        }
+        filter.borrow_date.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        if (Number.isNaN(to.getTime())) {
+          return res.status(400).json({ message: "toDate không hợp lệ" });
+        }
+        if (toDate.length <= 10) to.setHours(23, 59, 59, 999);
+        filter.borrow_date.$lte = to;
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      userBook
+        .find(filter)
+        .select(
+          "user_id book_id quantity borrow_date return_date status book_detail deleted createdAt"
+        )
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .populate("user_id", "fullname email")
+        .populate("book_id", "title price")
+        .lean(),
+      userBook.countDocuments(filter),
+    ]);
+
+    // borrowBookFunction đã lưu book_detail.price = tổng tiền => dùng trực tiếp
+    const mapped = data.map((o) => {
+      const totalPrice =
+        typeof o?.book_detail?.price === "number"
+          ? o.book_detail.price
+          : (Number.isFinite(o.quantity) ? o.quantity : 0) *
+            (typeof o?.book_id?.price === "number" ? o.book_id.price : 0);
+      return { ...o, totalPrice };
+    });
+
+    return res.status(200).json({
+      message: "Lấy danh sách đặt sách thành công",
+      data: includeTotalBool ? mapped : data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.max(Math.ceil(total / limitNum), 1),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Danh sách đặt bàn
+module.exports.listTableOrders = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      userId,
+      tableId,
+      fromDate,
+      toDate,
+      includeDeleted = "false",
+      includeTotal = "false", // 'true' => trả kèm totalPrice
+    } = req.query;
+
+    const includeTotalBool = String(includeTotal) === "true";
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Validate ObjectId
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "userId không hợp lệ" });
+    }
+    if (tableId && !mongoose.Types.ObjectId.isValid(tableId)) {
+      return res.status(400).json({ message: "tableId không hợp lệ" });
+    }
+
+    // Build filter
+    const filter = {};
+    if (includeDeleted !== "true") filter.deleted = false;
+    if (status) filter.status = status;
+    if (userId) filter.user_id = userId;
+    if (tableId) filter.table_id = tableId;
+
+    // Date range on time_date
+    if (fromDate || toDate) {
+      filter.time_date = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (Number.isNaN(from.getTime())) {
+          return res.status(400).json({ message: "fromDate không hợp lệ" });
+        }
+        filter.time_date.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        if (Number.isNaN(to.getTime())) {
+          return res.status(400).json({ message: "toDate không hợp lệ" });
+        }
+        if (toDate.length <= 10) to.setHours(23, 59, 59, 999);
+        filter.time_date.$lte = to;
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      UserTable.find(filter)
+        .select("user_id table_id time_slot time_date status deleted createdAt")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .populate("user_id", "fullname email")
+        .populate("table_id", "title price status")
+        .lean(),
+      UserTable.countDocuments(filter),
+    ]);
+
+    // Tổng tiền = giá bàn * số slot
+    const mapped = data.map((o) => {
+      const slotCount = Array.isArray(o.time_slot) ? o.time_slot.length : 0;
+      const unit =
+        typeof o?.table_id?.price === "number" ? o.table_id.price : 0;
+      return { ...o, time_slot_count: slotCount, totalPrice: unit * slotCount };
+    });
+
+    return res.status(200).json({
+      message: "Lấy danh sách đặt bàn thành công",
+      data: includeTotalBool ? mapped : data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.max(Math.ceil(total / limitNum), 1),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };
