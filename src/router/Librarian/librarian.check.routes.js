@@ -20,7 +20,7 @@ routerLibCheck.delete(
   LibrarianController.DeleteBook
 );
 routerLibCheck.get("/getAllBooks", LibrarianController.GetAllBook);
-module.exports = routerLibCheck;
+routerLibCheck.post("/changebook/:id", LibrarianController.changeBook);
 routerLibCheck.patch("/returnBook", LibrarianController.returnBorrowBook);
 
 // CRUD Table
@@ -29,6 +29,7 @@ routerLibCheck.get("/tables", LibrarianController.listTables);
 routerLibCheck.get("/tables/:id", LibrarianController.getTableById);
 routerLibCheck.put("/tables/:id", LibrarianController.updateTable);
 routerLibCheck.delete("/tables/:id", LibrarianController.deleteTable);
+routerLibCheck.put("/tableschange/:id", LibrarianController.changetable);
 //khôi phục (restore) + xóa hẳn (hard delete)
 routerLibCheck.patch("/tables/:id/restore", LibrarianController.restoreTable);
 routerLibCheck.delete("/tables/:id/hard", LibrarianController.hardDeleteTable);
