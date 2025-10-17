@@ -287,8 +287,33 @@ module.exports.GetAllBook = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// change hoat dộng
+module.exports.changeBook = async (req, res) => {
+  console.log("chạy vào changeboook");
+  try {
+    const { id } = req.params;
+    const Books = await Book.findById(id);
+
+    if (!Books) {
+      return res.status(404).json({ message: "Not Found" });
+    }
+
+    const newStatus = Books.status === "active" ? "inactive" : "active";
+
+    await Book.updateOne({ _id: id }, { status: newStatus });
+
+    return res.status(200).json({
+      message: "success",
+      status: newStatus,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
 // Tạo bàn
 module.exports.createTable = async (req, res) => {
+  console.log("chạy vào add table ");
   try {
     let { title, price = 0, status = "active" } = req.body;
     if (typeof title !== "string" || !title.trim()) {
@@ -302,6 +327,7 @@ module.exports.createTable = async (req, res) => {
       return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
     const table = await Table.create({ title: title.trim(), price: p, status });
+    console.log("lưu thành côgn");
     return res.status(201).json({ message: "Tạo bàn thành công", data: table });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -435,6 +461,28 @@ module.exports.deleteTable = async (req, res) => {
       .json({ message: "Xóa mềm bàn thành công", data: table });
   } catch (err) {
     return res.status(500).json({ message: err.message });
+  }
+};
+module.exports.changetable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Tables = await Table.findById(id);
+
+    if (!Tables) {
+      return res.status(404).json({ message: "Not Found" });
+    }
+
+    const newStatus = Tables.status === "active" ? "inactive" : "active";
+
+    await Table.updateOne({ _id: id }, { status: newStatus });
+
+    return res.status(200).json({
+      message: "success",
+      status: newStatus,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server Error" });
   }
 };
 // lấy ra tác giả
