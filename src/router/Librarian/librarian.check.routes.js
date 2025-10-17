@@ -34,6 +34,7 @@ routerLibCheck.patch("/tables/:id/restore", LibrarianController.restoreTable);
 routerLibCheck.delete("/tables/:id/hard", LibrarianController.hardDeleteTable);
 routerLibCheck.get("/category", LibrarianController.getauthor);
 routerLibCheck.get("/getauthor", LibrarianController.getcategory);
+routerLibCheck.get("/getAllConversations",LibrarianController.getAllConversations);
 routerLibCheck.post("/sendMessages/:userIdInput", LibrarianController.sendMessage);
 routerLibCheck.get("/messageHistories/:userIdInput", LibrarianController.getMessageHistory);
 module.exports = routerLibCheck;

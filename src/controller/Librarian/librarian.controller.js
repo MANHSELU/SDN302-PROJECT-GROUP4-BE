@@ -7,6 +7,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Author = require("./../../model/Author");
 const Category = require("./../../model/Category");
+const Conversation = require("../../model/Conversation");
+
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -31,7 +33,7 @@ module.exports.login = async (req, res) => {
       }
 
       // Check role_id nếu đây là login admin
-      else if (users.role_id.toString() !== "68204b309bd5898e0b648bd6") {
+      else if (users.role_id.toString() !== "68eccb84887849ea8f813f9c") {
         Object.assign(response, {
           state: 403,
           message: "Bạn không có quyền truy cập trang Admin",
@@ -474,7 +476,20 @@ module.exports.getcategory = async (req, res) => {
 };
 
 
+// Lấy tất cả cuộc hội thoại
+module.exports.getAllConversations = async (req, res) =>{
+  try {
+    const conversation = await Conversation.find().sort({lastMessagesTime: -1});
+    if (!conversation) {
+      return res.status(404).json({message: "Không tìm thấy cuộc hội thoại."});
+    }
+    res.status(200).json({message: "Lấy danh sách cuộc hội thoại thành công.", data: conversation});
+  } catch (error) {
+    res.status(500).json({message: error.message});
+  }
+}
 
+// Gửi tin nhắn
 module.exports.sendMessage = async (req, res) => {
   try{
     // const senderIdInput = res.locals.user.id; 
@@ -493,7 +508,7 @@ module.exports.sendMessage = async (req, res) => {
   }
 };
 
-
+// Lấy tin nhắn
 module.exports.getMessageHistory = async(req, res) => {
   try {
     // const senderIdInput = res.locals.user.id;

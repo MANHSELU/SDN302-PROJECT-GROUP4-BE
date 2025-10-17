@@ -13,6 +13,7 @@ const User_table = require("../../model/User_table");
 const cloudinary = require("../../config/cloudinary");
 const Message = require("../../model/Messages");
 const Role = require("../../model/Role");
+const Conversation = require("../../model/Conversation");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -469,9 +470,10 @@ module.exports.sendMessage = async (req, res) => {
     // const senderIdInput = res.locals.user.id;
     const {senderIdInput} = req.body;
     const { contentInput } = req.body; // Dùng body để test trước
-    const librarian = await user.findOne({ status: "active" }).populate({path: "role_id",match: {title: "LIBRARIAN"},})
-      .where("role_id")
-      .ne(null);
+    const librarian = await user.findOne({
+      _id: "68ef8d8d6846ef07d26538c8",
+      status: "active",
+    });
     if (!librarian) {
       return res.status(404).json({ message: "Không tìm thấy thủ thư" });
     }
@@ -482,6 +484,24 @@ module.exports.sendMessage = async (req, res) => {
       read: false,
     });
     await message.save();
+    const conversation = await Conversation.findOne({
+      librarian_id: librarian._id,
+      user_id: senderIdInput,
+    });
+    if (!conversation) {
+      const newConversation = new Conversation({
+        librarian_id: librarian._id,
+        user_id: senderIdInput,
+        lastMessages: contentInput,
+        lastMessagesTime: new Date(),
+      });
+      await newConversation.save();
+    } else {
+      conversation.lastMessages = contentInput;
+      conversation.lastMessagesTime = new Date();
+      await conversation.save();
+    }
+
     res.status(200).json({ message: "Gửi tin nhắn thành công", data: message });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -491,10 +511,17 @@ module.exports.sendMessage = async (req, res) => {
 module.exports.getMessageHistory = async (req, res) => {
   try {
     // const { senderIdInput } = res.locals.user.id;
-        const {senderIdInput} = req.body;
-       const librarian = await user.findOne({ status: "active" }).populate({path: "role_id",match: {title: "LIBRARIAN"},})
-      .where("role_id")
-      .ne(null);
+    const senderIdInput = res.locals.user.id;
+    const mongoose = require("mongoose");
+
+    const librarian = await user.findOne({
+      _id: new mongoose.Types.ObjectId("68ef8d8d6846ef07d26538c8"),
+      status: "active",
+    });
+
+    if (!librarian) {
+      return res.status(404).json({ message: "Không tìm thấy thủ thư" });
+    }
     const messages = await Message.find({
       $or: [
         { sender_id: senderIdInput, receiver_id: librarian._id },
