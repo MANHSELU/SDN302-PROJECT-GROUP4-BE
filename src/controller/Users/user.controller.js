@@ -14,6 +14,7 @@ const FaouriteBook = require("../../model/FaouriteBook");
 const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
+  console.log("chạy vào login của user");
   const { email, password } = req.body;
   const response = {};
   if (!email || !password) {
@@ -112,7 +113,6 @@ module.exports.register = async (req, res) => {
 module.exports.findAndFilterProductPaginated = async (req, res) => {
   try {
     const { categoryTitle = "", keyword = "", page = 1 } = req.query;
-    console.log("req.query là : ", keyword, page, categoryTitle);
     const pageSize = 10;
     const skip = (page - 1) * pageSize; // ==> Bỏ qua sản phẩm để phân trang,Ví dụ: page = 2, limit = 5 → skip = 5
     // → bỏ 5 sản phẩm đầu, lấy sản phẩm từ thứ 6 trở đi.
@@ -142,7 +142,6 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
           p.categori_id.some((cat) => String(cat._id) === String(category._id))
       );
     }
-    console.log("sản phẩm trả về là : ", allProducts);
     const paginatedProducts = allProducts.slice(skip, skip + pageSize);
     const totalItems = allProducts.length;
     const totalPages = Math.ceil(totalItems / pageSize); // Tính tổng số page dựa trên sản phẩm đã tính
@@ -370,11 +369,10 @@ module.exports.postUserTable = async (req, res) => {
     table_id: table_id,
     time_date: { $gte: start, $lt: end },
   });
-
+  console.log("user là : ", res.locals._id);
   if (!userTable) {
-    console.log("chạy vào if");
     userTable = new User_table({
-      user_id: res.locals._id,
+      user_id: res.locals.user._id,
       table_id,
       time_slot: Array.isArray(slot_time) ? slot_time : [slot_time],
       time_date: start, // lưu ngày chuẩn
@@ -648,9 +646,12 @@ module.exports.deleteFavouriteBook = async (req, res) => {
         .status(404)
         .json({ message: "Không tìm thấy trong yêu thích" });
 
-    fav.deleted = true;
-    await fav.save();
-    return res.json({ message: "Đã xóa khỏi yêu thích" });
+    await FaouriteBook.deleteOne({ user_id: userId, book_id: bookId });
+    return res.json({
+      success: true,
+      message: "Đã xóa khỏi yêu thích",
+      bookId,
+    });
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }
