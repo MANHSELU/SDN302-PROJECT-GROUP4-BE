@@ -14,6 +14,7 @@ const cloudinary = require("../../config/cloudinary");
 const Message = require("../../model/Messages");
 const Role = require("../../model/Role");
 const Conversation = require("../../model/Conversation");
+const { sendToUser } = require("../../config/websocket");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -453,7 +454,6 @@ module.exports.changePassword = async (req, res) => {
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ message: "New password mismatch" });
     }
-
     const ok = bcrypt.compareSync(oldPassword, me.password);
     if (!ok) return res.status(400).json({ message: "Old password incorrect" });
 
@@ -467,8 +467,8 @@ module.exports.changePassword = async (req, res) => {
 
 module.exports.sendMessage = async (req, res) => {
   try {
-    // const senderIdInput = res.locals.user.id;
-    const {senderIdInput} = req.body;
+    const senderIdInput = res.locals.user.id;
+    //const {senderIdInput} = req.body;
     const { contentInput } = req.body; // Dùng body để test trước
     const librarian = await user.findOne({
       _id: "68ef8d8d6846ef07d26538c8",
@@ -484,6 +484,10 @@ module.exports.sendMessage = async (req, res) => {
       read: false,
     });
     await message.save();
+    sendToUser(librarian._id, {
+      type: "new_message",
+      data: message,
+    });
     const conversation = await Conversation.findOne({
       librarian_id: librarian._id,
       user_id: senderIdInput,
@@ -501,7 +505,6 @@ module.exports.sendMessage = async (req, res) => {
       conversation.lastMessagesTime = new Date();
       await conversation.save();
     }
-
     res.status(200).json({ message: "Gửi tin nhắn thành công", data: message });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -513,12 +516,10 @@ module.exports.getMessageHistory = async (req, res) => {
     // const { senderIdInput } = res.locals.user.id;
     const senderIdInput = res.locals.user.id;
     const mongoose = require("mongoose");
-
     const librarian = await user.findOne({
       _id: new mongoose.Types.ObjectId("68ef8d8d6846ef07d26538c8"),
       status: "active",
     });
-
     if (!librarian) {
       return res.status(404).json({ message: "Không tìm thấy thủ thư" });
     }

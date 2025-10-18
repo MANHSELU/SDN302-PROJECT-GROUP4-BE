@@ -16,7 +16,7 @@ function initWebSocket(server) {
         const data = JSON.parse(msg);
         if (data.type === "register") {
           // Lưu userId vào map
-          clients.set(data.userId, ws);
+          clients.set(String(data.userId), ws);
           ws.userId = data.userId;
           console.log(`✅ User ${data.userId} registered WebSocket`);
         }ư
@@ -31,9 +31,9 @@ function initWebSocket(server) {
   });
 }
 function sendToUser(userId, data) {
-  const client = clients.get(userId);
+  const client = clients.get(String(userId));
   if (client && client.readyState === WebSocket.OPEN) {
     client.send(JSON.stringify(data));
   }
 }
-module.exports = { initWebSocket, sendToUser };
+module.exports = { initWebSocket, sendToUser };ss

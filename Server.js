@@ -27,7 +27,6 @@ const librarianRouterNotCheck = require("./src/router/Librarian/index.notcheck.r
 const { initWebSocket } = require("./src/config/websocket");
 const http = require("http");
 const server = http.createServer(app);
-initWebSocket(server);
 userRouterNotCheck(app);
 adminRouterNotCheck(app);
 userRouterCheck(app);

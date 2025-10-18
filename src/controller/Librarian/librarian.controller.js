@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const Author = require("./../../model/Author");
 const Category = require("./../../model/Category");
 const Conversation = require("../../model/Conversation");
-
+const { sendToUser } = require("../../config/websocket");
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -475,53 +475,64 @@ module.exports.getcategory = async (req, res) => {
   return res.status(response.status).json(response);
 };
 
-
 // Lấy tất cả cuộc hội thoại
-module.exports.getAllConversations = async (req, res) =>{
+module.exports.getAllConversations = async (req, res) => {
   try {
-    const conversation = await Conversation.find().sort({lastMessagesTime: -1});
+    const conversation = await Conversation.find()
+      .populate("user_id", "fullname avatar")
+      .populate()
+      .sort({ lastMessagesTime: -1 });
     if (!conversation) {
-      return res.status(404).json({message: "Không tìm thấy cuộc hội thoại."});
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy cuộc hội thoại." });
     }
-    res.status(200).json({message: "Lấy danh sách cuộc hội thoại thành công.", data: conversation});
+    res
+      .status(200)
+      .json({
+        message: "Lấy danh sách cuộc hội thoại thành công.",
+        data: conversation,
+      });
   } catch (error) {
-    res.status(500).json({message: error.message});
+    res.status(500).json({ message: error.message });
   }
-}
+};
 
 // Gửi tin nhắn
 module.exports.sendMessage = async (req, res) => {
-  try{
-    // const senderIdInput = res.locals.user.id; 
-    const {userIdInput} = req.params;
-    const {contentInput,senderIdInput} = req.body; // Dùng body để test trước 
+  try {
+    const senderIdInput = res.locals.user.id;
+    const { userIdInput } = req.params;
+    const { contentInput } = req.body;
     const message = new Message({
-    sender_id: senderIdInput,
-    receiver_id: userIdInput,
-    content: contentInput,
-    read: false,
-  });
-  await message.save();
-  res.status(200).json({message: "Gửi tin nhắn thành công",data: message});
-  }catch(err){
-    res.status(500).json({error: err.message});
+      sender_id: senderIdInput,
+      receiver_id: userIdInput,
+      content: contentInput,
+      read: false,
+    });
+    await message.save();
+    sendToUser(userIdInput, {
+      type: "new_message",
+      data: message,
+    });
+    res.status(200).json({ message: "Gửi tin nhắn thành công", data: message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 // Lấy tin nhắn
-module.exports.getMessageHistory = async(req, res) => {
+module.exports.getMessageHistory = async (req, res) => {
   try {
-    // const senderIdInput = res.locals.user.id;
-    const {senderIdInput} = req.body; // Dùng body để test trước
-    const {userIdInput} = req.params;
+    const senderIdInput = res.locals.user.id;
+    //const {senderIdInput} = req.body; // Dùng body để test trước
+    const { userIdInput } = req.params;
     const messages = await Message.find({
       $or: [
-        {sender_id: senderIdInput, receiver_id: userIdInput},
-        {sender_id: userIdInput, receiver_id: senderIdInput}
-      ]
-    }).sort({createdAt: 1});
-    res.status(200).json({message: "Lịch sử tin nhắn", data: messages});
-  } catch (error) {
-  }
+        { sender_id: senderIdInput, receiver_id: userIdInput },
+        { sender_id: userIdInput, receiver_id: senderIdInput },
+      ],
+    }).sort({ createdAt: 1 });
+    res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
+  } catch (error) {}
 };
-
