@@ -30,5 +30,5 @@ const userbookSchema = new mongoose.Schema(
   }
 );
 
-const FaouriteBook = mongoose.model("userbooks", userbookSchema);
-module.exports = FaouriteBook;
+const User_Book = mongoose.model("userbooks", userbookSchema);
+module.exports = User_Book;
