@@ -655,3 +655,82 @@ module.exports.deleteFavouriteBook = async (req, res) => {
     return res.status(500).json({ message: e.message });
   }
 };
+
+// get order book
+module.exports.getOrderBooks = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_book").countDocuments(filter);
+
+    const orders = await require("../../model/User_book")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "book_id",
+        select: "title image authors price quantity slug published_year",
+        populate: { path: "authors", select: "name" },
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+//get order table
+module.exports.getOrderTables = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_table").countDocuments(
+      filter
+    );
+
+    const orders = await require("../../model/User_table")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "table_id",
+        select: "title price status", // Không có location, dùng title và price
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};

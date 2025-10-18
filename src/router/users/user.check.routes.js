@@ -8,6 +8,7 @@ routerUserCheck.get("/slottime", userController.getslotTime);
 routerUserCheck.get("/getTable", userController.getTables);
 routerUserCheck.post("/getUerTable", userController.getUserTable);
 routerUserCheck.post("/postTableUser", userController.postUserTable);
+routerUserCheck.get("/ordertable", userController.getOrderTables);
 routerUserCheck.put(
   "/profile",
   upload.single("avatar"),
