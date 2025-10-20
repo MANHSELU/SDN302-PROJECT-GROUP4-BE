@@ -43,6 +43,10 @@ module.exports.login = async (req, res) => {
           message: "Not Found",
         });
       } else {
+        console.log(
+          "thời gian sống của acctoken là : ",
+          process.env.JWT_EXPRIRE
+        );
         const accesstoken = jwt.sign(
           { userId: users.id, roleId: users.role_id },
           process.env.JWT_SECRET,
@@ -58,7 +62,7 @@ module.exports.login = async (req, res) => {
           }
         );
         await user.updateOne(
-          { _id: users },
+          { _id: users.id },
           {
             refresh_token: refresh_token,
           }
@@ -157,39 +161,136 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 // mượn sách
+const { v4: uuidv4 } = require("uuid");
+let crypto = require("crypto");
+const moment = require("moment");
+const os = require("os");
 module.exports.borrowBookFunction = async (req, res) => {
+  console.log("📚 Chạy vào borrowBookFunction");
+
   try {
-    const { bookId, quantityInput } = req.body;
+    // 🧩 1. Lấy dữ liệu từ request
+    const { bookId, quantityInput, slug } = req.body;
+    console.log("dữ liệu về là : ", bookId, quantityInput, slug);
     const book = await Book.findById(bookId);
+    const userId = res.locals.user?.id;
+
     if (!book) {
-      return res.status(404).json({ message: "Không tìm thấy sách " });
+      return res.status(404).json({ message: "❌ Không tìm thấy sách." });
     }
     if (book.quantity <= 0) {
-      return res
-        .status(400)
-        .json({ message: "Sách này đã hết. Vui lòng chọn sách khác" });
+      return res.status(400).json({ message: "❌ Sách này đã hết hàng." });
     }
     if (book.quantity < quantityInput) {
       return res.status(400).json({
-        message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`,
+        message: `⚠️ Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn.`,
       });
     }
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ message: "Thiếu user_id (token không hợp lệ)." });
+    }
+    let amount = 0;
+    // 🧩 2. Tính tổng tiền
+    amount = Number(book.price) * Number(quantityInput);
+    console.log("💰 amount:", amount, "| kiểu:", typeof amount);
+
+    let date = new Date();
+    let createDate = moment(date).format("YYYYMMDDHHmmss");
+    function getLocalIpAddress() {
+      const interfaces = os.networkInterfaces();
+
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          // Bỏ qua địa chỉ nội bộ (127.0.0.1) và địa chỉ IPv6
+          if (iface.family === "IPv4" && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+
+      return "127.0.0.1"; // fallback nếu không có IP nào phù hợp
+    }
+
+    const clientIp = getLocalIpAddress();
+    let locale = req.body.language;
+    if (locale === null || locale === "") {
+      locale = "vn";
+    }
+    console.log("locale: ", locale);
+    console.log("process.env.VNP_HASH_SECRET: ", process.env.VNP_HASH_SECRET);
+    const txnRef = uuidv4();
+    const returnUrl = `${process.env.VNP_RETURNURL}/${req.body.slug || ""}`;
+    let currCode = "VND";
+    let vnp_Params = {};
+    vnp_Params["vnp_Version"] = "2.1.0";
+    vnp_Params["vnp_Command"] = "pay";
+    vnp_Params["vnp_TmnCode"] = process.env.VNP_TMNCODE;
+    vnp_Params["vnp_Locale"] = "vn";
+    vnp_Params["vnp_CurrCode"] = currCode;
+    vnp_Params["vnp_TxnRef"] = txnRef;
+    vnp_Params["vnp_OrderInfo"] = `${userId}`;
+    vnp_Params["vnp_OrderType"] = "other";
+    vnp_Params["vnp_Amount"] = amount * 100;
+    vnp_Params["vnp_ReturnUrl"] = encodeURIComponent(returnUrl);
+    vnp_Params["vnp_IpAddr"] = clientIp;
+    vnp_Params["vnp_CreateDate"] = createDate;
+    // Optional bankCode nếu có
+    let bankCode = req.body.bankCode;
+    if (bankCode !== null && bankCode !== "") {
+      vnp_Params["vnp_BankCode"] = bankCode;
+    }
+    let querystring = require("qs");
+    // let vnpUrl = process.env.VNP_PAYURL;
+    const sortedParams = Object.keys(vnp_Params)
+      .sort()
+      .reduce((obj, key) => {
+        obj[key] = vnp_Params[key];
+        return obj;
+      }, {});
+
+    // Tạo vnp_SecureHash với SHA-256
+    const signData = querystring.stringify(sortedParams, { encode: false });
+    const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
+    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+    vnp_Params["vnp_SecureHash"] = signed;
+
+    // Tạo URL thanh toán
+    const vnpUrl =
+      process.env.VNP_PAYURL +
+      "?" +
+      querystring.stringify(vnp_Params, { encode: false });
+    console.log("signData:", signData);
+    console.log("vnp_SecureHash:", vnp_Params["vnp_SecureHash"]);
+    console.log("vnp_Params:", vnp_Params);
+    console.log("vnpUrl:", vnpUrl);
+    // 🧩 9. Lưu thông tin mượn sách
     const userBook = new UserBook({
       user_id: res.locals.user._id,
       book_id: bookId,
       quantity: quantityInput,
       borrow_date: new Date(),
       book_detail: {
-        price: book.price * quantityInput,
-        date: book.date,
+        price: amount,
+        date: new Date(),
         transaction_type: "Booking_book",
       },
     });
     await userBook.save();
+
+    // Giảm số lượng trong kho
     book.quantity -= Number(quantityInput);
     await book.save();
-    res.status(200).json({ message: "Mượn sách thành công" });
+
+    // 🧩 10. Trả về URL thanh toán cho FE
+    res.status(200).json({
+      success: true,
+      message: "Tạo yêu cầu mượn sách và thanh toán thành công!",
+      url: vnpUrl,
+    });
   } catch (err) {
+    console.error("🚨 Lỗi trong borrowBookFunction:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -655,4 +756,43 @@ module.exports.deleteFavouriteBook = async (req, res) => {
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }
+};
+module.exports.refersh_token = async (req, res) => {
+  const refresh_token = req.body.refresh_token;
+  const response = {};
+  if (!response) {
+    Object.assign(response, {
+      state: 401,
+      message: "Unauthorization",
+    });
+  } else {
+    try {
+      jwt.verify(refresh_token, process.env.JWT_SECRET); // tạo ra decode
+      const users = await user.findOne({ refresh_token: refresh_token });
+      if (!user) {
+        throw new Error("User not exist");
+      }
+      // tạo access token mới
+      const accesstoken = jwt.sign(
+        { userId: users.id }, // chỉ lưu mỗi userId
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.JWT_EXPRIRE,
+        }
+      );
+      Object.assign(response, {
+        state: 200,
+        message: "Success",
+        access_Token: accesstoken,
+        refresh_token: refresh_token,
+      });
+    } catch (e) {
+      // vì cũng có trường hợp không lấy được refresh token
+      Object.assign(response, {
+        state: 401,
+        message: "Unauthorization",
+      });
+    }
+  }
+  res.status(response.state).json(response);
 };

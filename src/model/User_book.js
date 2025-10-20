@@ -16,7 +16,7 @@ const userbookSchema = new mongoose.Schema(
       date: Date,
       status: {
         type: String,
-        enum: ["active", "returned", "cancelled"], // đang mượn , đã trả , chưa lấy sách
+        enum: ["pending", "active", "returned", "cancelled"], // đang mượn , đã trả , chưa lấy sách
         default: "active",
       },
       transaction_type: String,
