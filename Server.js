@@ -3,8 +3,10 @@ const app = express();
 const port = 3000;
 const database = require("./src/config/database");
 require("dotenv").config();
-var cors = require("cors");
+const cors = require("cors");
+
 const whitelist = ["http://localhost:3000", "http://localhost:5173"];
+
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || whitelist.includes(origin)) {
@@ -14,6 +16,12 @@ const corsOptions = {
     }
   },
   credentials: true,
+
+  // ✅ Cho phép tất cả các method cần thiết
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+  // ✅ Cho phép các header phổ biến
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
