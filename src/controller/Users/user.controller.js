@@ -16,7 +16,6 @@ const Role = require("../../model/Role");
 const Conversation = require("../../model/Conversation");
 const { sendToUser } = require("../../config/websocket");
 const FaouriteBook = require("../../model/FaouriteBook");
-const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   console.log("chạy vào login của user");
@@ -636,6 +635,7 @@ module.exports.getMessageHistory = async (req, res) => {
     }).sort({ createdAt: 1 });
     res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
   } catch (error) {}
+};
 // GET fav book
 module.exports.getFavouriteBooks = async (req, res) => {
   try {
@@ -745,7 +745,10 @@ module.exports.addFavouriteBook = async (req, res) => {
     });
     if (!book) return res.status(404).json({ message: "Không tìm thấy sách" });
 
-    let fav = await FaouriteBook.findOne({ user_id: userId, book_id: bookId });
+    let fav = await FaouriteBook.findOne({
+      user_id: userId,
+      book_id: bookId,
+    });
 
     if (fav && !fav.deleted) {
       return res.status(409).json({ message: "Sách đã có trong yêu thích" });
@@ -868,4 +871,83 @@ module.exports.refersh_token = async (req, res) => {
     }
   }
   res.status(response.state).json(response);
+};
+
+// get order book
+module.exports.getOrderBooks = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_book").countDocuments(filter);
+
+    const orders = await require("../../model/User_book")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "book_id",
+        select: "title image authors price quantity slug published_year",
+        populate: { path: "authors", select: "name" },
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+//get order table
+module.exports.getOrderTables = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_table").countDocuments(
+      filter
+    );
+
+    const orders = await require("../../model/User_table")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "table_id",
+        select: "title price status",
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };

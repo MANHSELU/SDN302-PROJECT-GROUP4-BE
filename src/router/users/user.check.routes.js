@@ -23,4 +23,6 @@ routerUserCheck.delete(
   "/favourite/:bookId",
   userController.deleteFavouriteBook
 );
+routerUserCheck.get("/orderbook", userController.getOrderBooks);
+routerUserCheck.get("/ordertable", userController.getOrderTables);
 module.exports = routerUserCheck;

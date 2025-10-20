@@ -1,7 +1,6 @@
-const WebSocket = require('ws');
+const WebSocket = require("ws");
 
 const clients = new Map();
-
 
 function initWebSocket(server) {
   const wss = new WebSocket.Server({ server });
@@ -19,7 +18,8 @@ function initWebSocket(server) {
           clients.set(String(data.userId), ws);
           ws.userId = data.userId;
           console.log(`✅ User ${data.userId} registered WebSocket`);
-        }ư
+        }
+        ư;
       } catch (err) {
         console.error("❌ Invalid message format:", msg);
       }
@@ -36,4 +36,4 @@ function sendToUser(userId, data) {
     client.send(JSON.stringify(data));
   }
 }
-module.exports = { initWebSocket, sendToUser };ss
+module.exports = { initWebSocket, sendToUser };

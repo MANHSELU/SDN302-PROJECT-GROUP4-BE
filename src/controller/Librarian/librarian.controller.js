@@ -36,7 +36,6 @@ module.exports.login = async (req, res) => {
         });
       }
 
-
       // Check role_id nếu đây là login admin
       else if (users.role_id.toString() !== "68204b309bd5898e0b648bd6") {
         Object.assign(response, {
@@ -570,12 +569,10 @@ module.exports.getAllConversations = async (req, res) => {
         .status(404)
         .json({ message: "Không tìm thấy cuộc hội thoại." });
     }
-    res
-      .status(200)
-      .json({
-        message: "Lấy danh sách cuộc hội thoại thành công.",
-        data: conversation,
-      });
+    res.status(200).json({
+      message: "Lấy danh sách cuộc hội thoại thành công.",
+      data: conversation,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -618,6 +615,7 @@ module.exports.getMessageHistory = async (req, res) => {
     }).sort({ createdAt: 1 });
     res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
   } catch (error) {}
+};
 // Danh sách đặt sách
 module.exports.listBookOrders = async (req, res) => {
   try {
@@ -785,7 +783,11 @@ module.exports.listTableOrders = async (req, res) => {
       const slotCount = Array.isArray(o.time_slot) ? o.time_slot.length : 0;
       const unit =
         typeof o?.table_id?.price === "number" ? o.table_id.price : 0;
-      return { ...o, time_slot_count: slotCount, totalPrice: unit * slotCount };
+      return {
+        ...o,
+        time_slot_count: slotCount,
+        totalPrice: unit * slotCount,
+      };
     });
 
     return res.status(200).json({
@@ -802,6 +804,7 @@ module.exports.listTableOrders = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
 module.exports.bookforusser = async (req, res) => {
   const { fullname, email, phone, book_id, quantity, note } = req.body;
   console.log(
