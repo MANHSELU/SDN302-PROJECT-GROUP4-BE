@@ -9,7 +9,6 @@ module.exports.checkaccount = async (req, res, next) => {
         .status(401)
         .json({ message: "Unauthorized, no token provided" });
     }
-
     const token = authHeader.split(" ")[1];
     if (!token) {
       return res

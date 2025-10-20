@@ -10,6 +10,11 @@ const TimeSlot = require("./../../model/TimeBook");
 const { response } = require("express");
 const Table = require("../../model/Table");
 const User_table = require("../../model/User_table");
+const cloudinary = require("../../config/cloudinary");
+const Message = require("../../model/Messages");
+const Role = require("../../model/Role");
+const Conversation = require("../../model/Conversation");
+const { sendToUser } = require("../../config/websocket");
 const FaouriteBook = require("../../model/FaouriteBook");
 const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
@@ -117,6 +122,7 @@ module.exports.register = async (req, res) => {
 module.exports.findAndFilterProductPaginated = async (req, res) => {
   try {
     const { categoryTitle = "", keyword = "", page = 1 } = req.query;
+    console.log("req.query là : ", keyword, page, categoryTitle);
     const pageSize = 10;
     const skip = (page - 1) * pageSize; // ==> Bỏ qua sản phẩm để phân trang,Ví dụ: page = 2, limit = 5 → skip = 5
     // → bỏ 5 sản phẩm đầu, lấy sản phẩm từ thứ 6 trở đi.
@@ -146,6 +152,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
           p.categori_id.some((cat) => String(cat._id) === String(category._id))
       );
     }
+    console.log("sản phẩm trả về là : ", allProducts);
     const paginatedProducts = allProducts.slice(skip, skip + pageSize);
     const totalItems = allProducts.length;
     const totalPages = Math.ceil(totalItems / pageSize); // Tính tổng số page dựa trên sản phẩm đã tính
@@ -161,6 +168,7 @@ module.exports.findAndFilterProductPaginated = async (req, res) => {
   }
 };
 // mượn sách
+
 const { v4: uuidv4 } = require("uuid");
 let crypto = require("crypto");
 const moment = require("moment");
@@ -551,7 +559,6 @@ module.exports.changePassword = async (req, res) => {
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ message: "Mật khẩu mới không khớp" });
     }
-
     const ok = bcrypt.compareSync(oldPassword, me.password);
     if (!ok) return res.status(400).json({ message: "Mật khẩu cũ không đúng" });
 
@@ -563,6 +570,72 @@ module.exports.changePassword = async (req, res) => {
   }
 };
 
+module.exports.sendMessage = async (req, res) => {
+  try {
+    const senderIdInput = res.locals.user.id;
+    //const {senderIdInput} = req.body;
+    const { contentInput } = req.body; // Dùng body để test trước
+    const librarian = await user.findOne({
+      _id: "68ef8d8d6846ef07d26538c8",
+      status: "active",
+    });
+    if (!librarian) {
+      return res.status(404).json({ message: "Không tìm thấy thủ thư" });
+    }
+    const message = new Message({
+      sender_id: senderIdInput,
+      receiver_id: librarian._id,
+      content: contentInput,
+      read: false,
+    });
+    await message.save();
+    sendToUser(librarian._id, {
+      type: "new_message",
+      data: message,
+    });
+    const conversation = await Conversation.findOne({
+      librarian_id: librarian._id,
+      user_id: senderIdInput,
+    });
+    if (!conversation) {
+      const newConversation = new Conversation({
+        librarian_id: librarian._id,
+        user_id: senderIdInput,
+        lastMessages: contentInput,
+        lastMessagesTime: new Date(),
+      });
+      await newConversation.save();
+    } else {
+      conversation.lastMessages = contentInput;
+      conversation.lastMessagesTime = new Date();
+      await conversation.save();
+    }
+    res.status(200).json({ message: "Gửi tin nhắn thành công", data: message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports.getMessageHistory = async (req, res) => {
+  try {
+    // const { senderIdInput } = res.locals.user.id;
+    const senderIdInput = res.locals.user.id;
+    const mongoose = require("mongoose");
+    const librarian = await user.findOne({
+      _id: new mongoose.Types.ObjectId("68ef8d8d6846ef07d26538c8"),
+      status: "active",
+    });
+    if (!librarian) {
+      return res.status(404).json({ message: "Không tìm thấy thủ thư" });
+    }
+    const messages = await Message.find({
+      $or: [
+        { sender_id: senderIdInput, receiver_id: librarian._id },
+        { sender_id: librarian._id, receiver_id: senderIdInput },
+      ],
+    }).sort({ createdAt: 1 });
+    res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
+  } catch (error) {}
 // GET fav book
 module.exports.getFavouriteBooks = async (req, res) => {
   try {

@@ -1,7 +1,6 @@
-const { default: mongoose } = require("mongoose");
-const moongoose = require("mongoose");
+const mongoose = require("mongoose");
 
-const rolesSchema = new moongoose.Schema(
+const rolesSchema = new mongoose.Schema(
   {
     title: String,
     description: String,

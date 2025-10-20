@@ -14,6 +14,8 @@ routerUserCheck.put(
   userController.updateProfile
 );
 routerUserCheck.put("/profile/password", userController.changePassword);
+routerUserCheck.post("/sendMessage", userController.sendMessage);
+routerUserCheck.get("/messageHistory", userController.getMessageHistory);
 // Fav book
 routerUserCheck.get("/favourite", userController.getFavouriteBooks);
 routerUserCheck.post("/favourite", userController.addFavouriteBook);
