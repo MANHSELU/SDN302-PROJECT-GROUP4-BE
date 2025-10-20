@@ -4,6 +4,7 @@ const userSchema = new mongoose.Schema(
     fullname: String,
     email: String,
     password: String,
+    refresh_token: String,
     phone: String,
     avatar: String,
     role_id: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },

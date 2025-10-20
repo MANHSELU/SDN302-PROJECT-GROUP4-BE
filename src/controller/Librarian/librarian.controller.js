@@ -9,6 +9,10 @@ const Author = require("./../../model/Author");
 const Category = require("./../../model/Category");
 const Conversation = require("../../model/Conversation");
 const { sendToUser } = require("../../config/websocket");
+const UserTable = require("../../model/User_table");
+const mongoose = require("mongoose");
+const userao = require("./../../model/User_Ao");
+const UserBook = require("./../../model/User_book");
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -32,8 +36,9 @@ module.exports.login = async (req, res) => {
         });
       }
 
+
       // Check role_id nếu đây là login admin
-      else if (users.role_id.toString() !== "68eccb84887849ea8f813f9c") {
+      else if (users.role_id.toString() !== "68204b309bd5898e0b648bd6") {
         Object.assign(response, {
           state: 403,
           message: "Bạn không có quyền truy cập trang Admin",
@@ -101,6 +106,7 @@ const Message = require("../../model/Messages");
 module.exports.returnBorrowBook = async (req, res) => {
   try {
     const { user_id, book_id, borrow_Date } = req.body;
+    console.log("user id là: ", user_id);
     const userBooking = await userBook.findOne({
       user_id,
       book_id,
@@ -127,7 +133,35 @@ module.exports.returnBorrowBook = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+module.exports.laysach = async (req, res) => {
+  console.log("chạy vào lấy sách ");
+  try {
+    const { user_id, book_id, borrow_Date } = req.body;
+    console.log("user id là : ", user_id);
+    const userBooking = await userBook.findOne({
+      book_id,
+      borrow_date: new Date(borrow_Date),
+      $or: [
+        { user_id: user_id },
+        { user_id_ao: user_id }, // trường hợp là user_ao
+      ],
+    });
 
+    if (!userBooking) {
+      return res.status(404).json({ messsage: "Không tìm thấy lịch đặt" });
+    }
+    if (userBooking.status === "returned") {
+      return res
+        .status(400)
+        .json({ messsage: "Lịch đặt này đã được hủy trước đó" });
+    }
+    userBooking.status = "cancelled";
+    await userBooking.save();
+    res.status(200).json({ message: "Xác nhận trả sách thành công" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 //Hàm thêm sách
 module.exports.AddNewBooks = async (req, res) => {
   try {
@@ -287,8 +321,33 @@ module.exports.GetAllBook = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// change hoat dộng
+module.exports.changeBook = async (req, res) => {
+  console.log("chạy vào changeboook");
+  try {
+    const { id } = req.params;
+    const Books = await Book.findById(id);
+
+    if (!Books) {
+      return res.status(404).json({ message: "Not Found" });
+    }
+
+    const newStatus = Books.status === "active" ? "inactive" : "active";
+
+    await Book.updateOne({ _id: id }, { status: newStatus });
+
+    return res.status(200).json({
+      message: "success",
+      status: newStatus,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
 // Tạo bàn
 module.exports.createTable = async (req, res) => {
+  console.log("chạy vào add table ");
   try {
     let { title, price = 0, status = "active" } = req.body;
     if (typeof title !== "string" || !title.trim()) {
@@ -302,6 +361,7 @@ module.exports.createTable = async (req, res) => {
       return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
     const table = await Table.create({ title: title.trim(), price: p, status });
+    console.log("lưu thành côgn");
     return res.status(201).json({ message: "Tạo bàn thành công", data: table });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -437,6 +497,29 @@ module.exports.deleteTable = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+module.exports.changetable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Tables = await Table.findById(id);
+
+    if (!Tables) {
+      return res.status(404).json({ message: "Not Found" });
+    }
+
+    const newStatus = Tables.status === "active" ? "inactive" : "active";
+
+    await Table.updateOne({ _id: id }, { status: newStatus });
+
+    return res.status(200).json({
+      message: "success",
+      status: newStatus,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
 // lấy ra tác giả
 module.exports.getauthor = async (req, res) => {
   const response = {};
@@ -535,4 +618,254 @@ module.exports.getMessageHistory = async (req, res) => {
     }).sort({ createdAt: 1 });
     res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
   } catch (error) {}
+// Danh sách đặt sách
+module.exports.listBookOrders = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      userId,
+      bookId,
+      fromDate,
+      toDate,
+      includeDeleted = "false",
+      includeTotal = "false", // 'true' => trả kèm totalPrice
+    } = req.query;
+
+    const includeTotalBool = String(includeTotal) === "true";
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Validate ObjectId
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "userId không hợp lệ" });
+    }
+    if (bookId && !mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ message: "bookId không hợp lệ" });
+    }
+
+    // Build filter
+    const filter = {};
+    if (includeDeleted !== "true") filter.deleted = false;
+    if (status) filter.status = status;
+    if (userId) filter.user_id = userId;
+    if (bookId) filter.book_id = bookId;
+
+    // Date range on borrow_date
+    if (fromDate || toDate) {
+      filter.borrow_date = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (Number.isNaN(from.getTime())) {
+          return res.status(400).json({ message: "fromDate không hợp lệ" });
+        }
+        filter.borrow_date.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        if (Number.isNaN(to.getTime())) {
+          return res.status(400).json({ message: "toDate không hợp lệ" });
+        }
+        if (toDate.length <= 10) to.setHours(23, 59, 59, 999);
+        filter.borrow_date.$lte = to;
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      userBook
+        .find(filter)
+        .select(
+          "user_id book_id quantity borrow_date return_date status book_detail deleted createdAt"
+        )
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .populate("user_id", "fullname email")
+        .populate("user_id_ao", "fullname email")
+        .populate("book_id", "title price")
+        .lean(),
+      userBook.countDocuments(filter),
+    ]);
+    console.log("data là : ", data);
+    // borrowBookFunction đã lưu book_detail.price = tổng tiền => dùng trực tiếp
+    const mapped = data.map((o) => {
+      const totalPrice =
+        typeof o?.book_detail?.price === "number"
+          ? o.book_detail.price
+          : (Number.isFinite(o.quantity) ? o.quantity : 0) *
+            (typeof o?.book_id?.price === "number" ? o.book_id.price : 0);
+      return { ...o, totalPrice };
+    });
+
+    return res.status(200).json({
+      message: "Lấy danh sách đặt sách thành công",
+      data: includeTotalBool ? mapped : data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.max(Math.ceil(total / limitNum), 1),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Danh sách đặt bàn
+module.exports.listTableOrders = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      userId,
+      tableId,
+      fromDate,
+      toDate,
+      includeDeleted = "false",
+      includeTotal = "false", // 'true' => trả kèm totalPrice
+    } = req.query;
+
+    const includeTotalBool = String(includeTotal) === "true";
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Validate ObjectId
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "userId không hợp lệ" });
+    }
+    if (tableId && !mongoose.Types.ObjectId.isValid(tableId)) {
+      return res.status(400).json({ message: "tableId không hợp lệ" });
+    }
+
+    // Build filter
+    const filter = {};
+    if (includeDeleted !== "true") filter.deleted = false;
+    if (status) filter.status = status;
+    if (userId) filter.user_id = userId;
+    if (tableId) filter.table_id = tableId;
+
+    // Date range on time_date
+    if (fromDate || toDate) {
+      filter.time_date = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (Number.isNaN(from.getTime())) {
+          return res.status(400).json({ message: "fromDate không hợp lệ" });
+        }
+        filter.time_date.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        if (Number.isNaN(to.getTime())) {
+          return res.status(400).json({ message: "toDate không hợp lệ" });
+        }
+        if (toDate.length <= 10) to.setHours(23, 59, 59, 999);
+        filter.time_date.$lte = to;
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      UserTable.find(filter)
+        .select("user_id table_id time_slot time_date status deleted createdAt")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .populate("user_id", "fullname email")
+        .populate("table_id", "title price status")
+        .populate("time_slot")
+        .lean(),
+      UserTable.countDocuments(filter),
+    ]);
+
+    // Tổng tiền = giá bàn * số slot
+    const mapped = data.map((o) => {
+      const slotCount = Array.isArray(o.time_slot) ? o.time_slot.length : 0;
+      const unit =
+        typeof o?.table_id?.price === "number" ? o.table_id.price : 0;
+      return { ...o, time_slot_count: slotCount, totalPrice: unit * slotCount };
+    });
+
+    return res.status(200).json({
+      message: "Lấy danh sách đặt bàn thành công",
+      data: includeTotalBool ? mapped : data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.max(Math.ceil(total / limitNum), 1),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+module.exports.bookforusser = async (req, res) => {
+  const { fullname, email, phone, book_id, quantity, note } = req.body;
+  console.log(
+    "fullname email phone book_id quantity ",
+    fullname,
+    email,
+    phone,
+    book_id,
+    quantity
+  );
+  // ✅ 1. Kiểm tra dữ liệu bắt buộc
+  if (!fullname || !email || !phone || !book_id || !quantity) {
+    return res.status(400).json({
+      message: "Thiếu thông tin bắt buộc!",
+    });
+  }
+  const users = await user.findOne({ email: email });
+  if (users) {
+    return res.status(400).json({
+      message: "Email đã tồn tại!",
+    });
+  }
+  const useraosexit = await userao.findOne({ email: email });
+  console.log("userao là : ", useraosexit);
+  if (useraosexit) {
+    return res.status(400).json({
+      message: "Email đã tồn tại!",
+    });
+  }
+  const useraos = new userao({
+    fullname: fullname,
+    email: email,
+    phone: phone,
+  });
+  await useraos.save();
+
+  const useraoo = await userao.findOne({ email: email });
+  const book = await Book.findById(book_id);
+  if (!book) {
+    return res.status(404).json({ message: "Không tìm thấy sách " });
+  }
+  if (book.quantity <= 0) {
+    return res
+      .status(400)
+      .json({ message: "Sách này đã hết. Vui lòng chọn sách khác" });
+  }
+  if (book.quantity < quantity) {
+    return res.status(400).json({
+      message: `Chỉ còn ${book.quantity} cuốn trong kho, không thể mượn ${quantityInput} cuốn`,
+    });
+  }
+  const userBook = new UserBook({
+    user_id_ao: useraoo.id,
+    book_id: book_id,
+    quantity: quantity,
+    borrow_date: new Date(),
+    book_detail: {
+      price: book.price * quantity,
+      date: book.date,
+      transaction_type: "Booking_book",
+    },
+  });
+  await userBook.save();
+  book.quantity -= Number(quantity);
+  await book.save();
+  res.status(201).json({ message: "Tạo người mượn thành công!" });
 };

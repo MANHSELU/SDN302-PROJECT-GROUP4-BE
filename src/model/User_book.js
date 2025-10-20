@@ -3,6 +3,7 @@ const userbookSchema = new mongoose.Schema(
   {
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
     book_id: { type: mongoose.Schema.Types.ObjectId, ref: "books" },
+    user_id_ao: { type: mongoose.Schema.Types.ObjectId, ref: "usersaos" },
     borrow_date: Date,
     return_date: Date,
     status: {
@@ -15,7 +16,7 @@ const userbookSchema = new mongoose.Schema(
       date: Date,
       status: {
         type: String,
-        enum: ["active", "returned", "cancelled"],
+        enum: ["pending", "active", "returned", "cancelled"], // đang mượn , đã trả , chưa lấy sách
         default: "active",
       },
       transaction_type: String,
@@ -30,5 +31,5 @@ const userbookSchema = new mongoose.Schema(
   }
 );
 
-const FaouriteBook = mongoose.model("userbooks", userbookSchema);
-module.exports = FaouriteBook;
+const User_Book = mongoose.model("userbooks", userbookSchema);
+module.exports = User_Book;
