@@ -1,3 +1,6 @@
+const User = require('../../model/User');
+const UserBook = require('../../model/User_book');
+const UserTable = require('../../model/User_table');
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -72,3 +75,41 @@ module.exports.login = async (req, res) => {
   }
   res.status(response.state).json({ response });
 };
+
+
+// Hàm lấy tất cả users
+module.exports.GetAllUsers = async(req,res) =>{
+    try {
+      const user = await User.find();
+      if(!user){
+        return res.status(404).json({message: "user not found"});
+      }
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({message : error.message});
+    }
+};
+
+
+// Hàm lấy tổng doanh thu sách theo năm
+module.exports.GetTotalRevenue = async(req,res)=>{
+  try {
+    let total = 0;
+    let totalUserTable = 0;
+    let totalUserBook = 0; 
+    const userBook = await UserBook.find().select('book_detail.price');
+     const userTable = await UserTable.find().populate("table_id","price");
+    console.log(userBook);
+    console.log(userTable);
+    for(const itemUserBook of userBook ){
+        totalUserBook += itemUserBook.book_detail.price;
+    };
+    for(const itemUserTable of userTable){
+      totalUserTable += itemUserTable.table_id.price;
+    };
+    total = totalUserBook + totalUserTable;
+    return res.status(200).json({data: total});
+  } catch (error) {
+    res.status(500).json({message : error.message});
+  }
+}
