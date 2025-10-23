@@ -1,5 +1,5 @@
-const router = require("./user.notcheck.routes");
-const middleware = require("./../../middleware/client/checkaccount");
+const userRouterNotCheck = require("./user.notcheck.routes");
+
 module.exports = (app) => {
-  app.use("/api/user/notcheck", router);
+  app.use("/api/user/notcheck", userRouterNotCheck);
 };

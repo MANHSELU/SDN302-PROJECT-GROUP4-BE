@@ -16,7 +16,6 @@ const Role = require("../../model/Role");
 const Conversation = require("../../model/Conversation");
 const { sendToUser } = require("../../config/websocket");
 const FaouriteBook = require("../../model/FaouriteBook");
-const cloudinary = require("../../config/cloudinary");
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   console.log("chạy vào login của user");
@@ -39,7 +38,7 @@ module.exports.login = async (req, res) => {
           status: 404,
           message: "Not Found",
         });
-        res.status(response.status).json({ response });
+       return  res.status(response.status).json({ response });
       }
       const result = bcrypt.compareSync(password, users.password);
       if (!result) {
@@ -868,4 +867,4 @@ module.exports.refersh_token = async (req, res) => {
     }
   }
   res.status(response.state).json(response);
-};
+}};
