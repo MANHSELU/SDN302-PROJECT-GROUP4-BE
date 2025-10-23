@@ -634,7 +634,10 @@ module.exports.getMessageHistory = async (req, res) => {
       ],
     }).sort({ createdAt: 1 });
     res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
-  } catch (error) {}
+  } catch (error) {
+        res.status(500).json({ error: err.message });
+  }
+};
 // GET fav book
 module.exports.getFavouriteBooks = async (req, res) => {
   try {
@@ -867,4 +870,4 @@ module.exports.refersh_token = async (req, res) => {
     }
   }
   res.status(response.state).json(response);
-}};
+};

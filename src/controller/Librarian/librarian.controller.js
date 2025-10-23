@@ -617,7 +617,10 @@ module.exports.getMessageHistory = async (req, res) => {
       ],
     }).sort({ createdAt: 1 });
     res.status(200).json({ message: "Lịch sử tin nhắn", data: messages });
-  } catch (error) {}
+  } catch (error) {
+     res.status(500).json({ error: err.message });
+  }
+}
 // Danh sách đặt sách
 module.exports.listBookOrders = async (req, res) => {
   try {
