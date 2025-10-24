@@ -15,5 +15,6 @@ routerUserNotCheck.get(
 routerUserNotCheck.get("/newBook", Usercontroller.getNewBook);
 routerUserNotCheck.get("/category", Usercontroller.getcategory);
 routerUserNotCheck.get("/getauthor", Usercontroller.getauthor);
+routerUserNotCheck.get("/reviewBook", Usercontroller.getReviewBooks);
 routerUserNotCheck.post("/refersh_token", Usercontroller.refersh_token);
 module.exports = routerUserNotCheck;

@@ -16,6 +16,8 @@ const Role = require("../../model/Role");
 const Conversation = require("../../model/Conversation");
 const { sendToUser } = require("../../config/websocket");
 const FaouriteBook = require("../../model/FaouriteBook");
+const ReviewBook = require("../../model/Review_book");
+
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   console.log("chạy vào login của user");
@@ -949,5 +951,61 @@ module.exports.getOrderTables = async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
+  }
+};
+// Thêm review
+module.exports.addReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { bookId, text, rating } = req.body;
+    if (!bookId || !text || typeof rating !== "number") {
+      return res.status(400).json({ message: "Thiếu thông tin đánh giá" });
+    }
+    const review = new ReviewBook({
+      user_id: userId,
+      book_id: bookId,
+      text,
+      rating,
+    });
+    await review.save();
+    // Populate user info khi trả về
+    const populatedReview = await ReviewBook.findById(review._id).populate({
+      path: "user_id",
+      select: "fullname avatar _id",
+    });
+    return res
+      .status(201)
+      .json({ message: "Đánh giá thành công", data: populatedReview });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Lấy review theo book
+
+module.exports.getReviewBooks = async (req, res) => {
+  try {
+    const { bookId, page = 1, limit = 5 } = req.query;
+    if (!bookId) return res.status(400).json({ message: "Thiếu bookId" });
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await ReviewBook.countDocuments({
+      book_id: bookId,
+      deleted: false,
+    });
+    const reviews = await ReviewBook.find({ book_id: bookId, deleted: false })
+      .populate({ path: "user_id", select: "fullname avatar _id" })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    res.json({
+      data: reviews,
+      totalPages: Math.ceil(total / Number(limit)),
+      total,
+      page: Number(page),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
