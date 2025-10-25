@@ -28,5 +28,9 @@ routerUserCheck.get("/ordertable", userController.getOrderTables);
 
 //Review_book
 routerUserCheck.post("/reviewBook", userController.addReviewBook);
-
+routerUserCheck.put("/reviewBook", userController.editReviewBook);
+routerUserCheck.delete(
+  "/reviewBook/:reviewId",
+  userController.deleteReviewBook
+);
 module.exports = routerUserCheck;

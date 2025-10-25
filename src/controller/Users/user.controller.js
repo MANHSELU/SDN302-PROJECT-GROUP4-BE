@@ -1009,3 +1009,52 @@ module.exports.getReviewBooks = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Sửa review
+module.exports.editReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { reviewId, text, rating } = req.body;
+    if (!reviewId) return res.status(400).json({ message: "Thiếu reviewId" });
+
+    const review = await ReviewBook.findOne({ _id: reviewId, deleted: false });
+    if (!review)
+      return res.status(404).json({ message: "Không tìm thấy review" });
+    if (String(review.user_id) !== String(userId))
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền sửa review này" });
+
+    if (text !== undefined) review.text = text;
+    if (rating !== undefined) review.rating = rating;
+    await review.save();
+
+    return res.json({ message: "Đã sửa review", data: review });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Xóa review (xóa mềm)
+module.exports.deleteReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { reviewId } = req.params;
+    if (!reviewId) return res.status(400).json({ message: "Thiếu reviewId" });
+
+    const review = await ReviewBook.findOne({ _id: reviewId, deleted: false });
+    if (!review)
+      return res.status(404).json({ message: "Không tìm thấy review" });
+    if (String(review.user_id) !== String(userId))
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa review này" });
+
+    review.deleted = true;
+    await review.save();
+
+    return res.json({ message: "Đã xóa review" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
