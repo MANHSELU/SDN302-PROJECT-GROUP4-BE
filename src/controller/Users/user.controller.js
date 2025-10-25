@@ -29,9 +29,7 @@ module.exports.login = async (req, res) => {
   } else {
     try {
       const users = await user.findOne({
-        email: email,
-        status: "active",
-      });
+        email: email,      });
       if (!users) {
         console.log("không tồn tại user");
         Object.assign(response, {
@@ -39,6 +37,13 @@ module.exports.login = async (req, res) => {
           message: "Not Found",
         });
        return  res.status(response.status).json({ response });
+      }
+        if (users.status != "active") {
+        Object.assign(response, {
+          status: 403,
+          message: "User Bị Ban",
+        });
+        return  res.status(response.status).json({ response });
       }
       const result = bcrypt.compareSync(password, users.password);
       if (!result) {

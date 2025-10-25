@@ -35,10 +35,15 @@ module.exports.login = async (req, res) => {
           message: "Email không tồn tại",
         });
       }
-
-
+     else if (users.status != "active") {
+        console.log("user bị ban");
+        Object.assign(response, {
+          state: 403,
+          message: "User bị Ban",
+        });
+      } 
       // Check role_id nếu đây là login admin
-      else if (users.role_id.toString() !== "68204b309bd5898e0b648bd6") {
+      else if (users.role_id.toString() !== "68eccb84887849ea8f813f9c") {
         Object.assign(response, {
           state: 403,
           message: "Bạn không có quyền truy cập trang Admin",

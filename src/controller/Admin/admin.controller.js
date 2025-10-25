@@ -92,6 +92,27 @@ module.exports.GetAllUsers = async (req, res) => {
 };
 
 // Hàm ban Users
+module.exports.BanUsers = async (req, res) =>{
+  try {
+    const {userId} = req.params;
+    const users = await User.findByIdAndUpdate(userId,{status : "Banned"});
+
+    res.status(200).json({message : "Ban người dùng thành công"}, users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+// Hàm ban Users
+module.exports.UnBanUsers = async (req, res) =>{
+  try {
+    const {userId} = req.params;
+    const users = await User.findByIdAndUpdate(userId,{status : "active"});
+
+    res.status(200).json({message : "UnBan người dùng thành công"}, users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
 // Hàm lấy tổng số người dùng
 module.exports.GetTotalUser = async (req, res) => {
   try {

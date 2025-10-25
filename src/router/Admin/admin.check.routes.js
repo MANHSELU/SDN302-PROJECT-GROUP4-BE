@@ -7,5 +7,7 @@ router.get("/getTotalRevenue",controller.GetTotalRevenue);
 router.get("/getAllTotalUser",controller.GetTotalUser);
 router.get("/getTotalNewUser", controller.GetTotalNewUser);
 router.get("/getRevenueDashboard", controller.GetAllRevenueByDashBoard);
+router.post("/banUsers/:userId", controller.BanUsers);
+router.post("/unBanUsers/:userId", controller.UnBanUsers);
 
 module.exports = router;
