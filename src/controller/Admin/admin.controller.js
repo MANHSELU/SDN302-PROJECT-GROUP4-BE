@@ -1,6 +1,7 @@
 const User = require("../../model/User");
 const UserBook = require("../../model/User_book");
 const UserTable = require("../../model/User_table");
+const Role = require("../../model/Role");
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -79,7 +80,8 @@ module.exports.login = async (req, res) => {
 // Hàm lấy tất cả users
 module.exports.GetAllUsers = async (req, res) => {
   try {
-    const user = await User.find();
+    const role = await Role.findOne({title : "admin"})
+    const user = await User.find({role_id : {$ne : role._id}}).populate("role_id","title"); //$ne là not equal
     if (!user) {
       return res.status(404).json({ message: "user not found" });
     }
@@ -88,6 +90,8 @@ module.exports.GetAllUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Hàm ban Users
 // Hàm lấy tổng số người dùng
 module.exports.GetTotalUser = async (req, res) => {
   try {
