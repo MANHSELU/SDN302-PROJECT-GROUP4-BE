@@ -13,6 +13,9 @@ const UserTable = require("../../model/User_table");
 const mongoose = require("mongoose");
 const userao = require("./../../model/User_Ao");
 const UserBook = require("./../../model/User_book");
+const Message = require("./../../model/Messages");
+
+
 //login thủ thư
 module.exports.login = async (req, res) => {
   console.log("đang chạy vào login");
@@ -106,7 +109,6 @@ module.exports.getProfile = async (req, res) => {
   };
   res.status(response.status).json(response);
 };
-const Message = require("../../model/Messages");
 //Hàm trả sách
 module.exports.returnBorrowBook = async (req, res) => {
   try {
@@ -575,12 +577,10 @@ module.exports.getAllConversations = async (req, res) => {
         .status(404)
         .json({ message: "Không tìm thấy cuộc hội thoại." });
     }
-    res
-      .status(200)
-      .json({
-        message: "Lấy danh sách cuộc hội thoại thành công.",
-        data: conversation,
-      });
+    res.status(200).json({
+      message: "Lấy danh sách cuộc hội thoại thành công.",
+      data: conversation,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -793,7 +793,11 @@ module.exports.listTableOrders = async (req, res) => {
       const slotCount = Array.isArray(o.time_slot) ? o.time_slot.length : 0;
       const unit =
         typeof o?.table_id?.price === "number" ? o.table_id.price : 0;
-      return { ...o, time_slot_count: slotCount, totalPrice: unit * slotCount };
+      return {
+        ...o,
+        time_slot_count: slotCount,
+        totalPrice: unit * slotCount,
+      };
     });
 
     return res.status(200).json({
@@ -810,6 +814,7 @@ module.exports.listTableOrders = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
 module.exports.bookforusser = async (req, res) => {
   const { fullname, email, phone, book_id, quantity, note } = req.body;
   console.log(

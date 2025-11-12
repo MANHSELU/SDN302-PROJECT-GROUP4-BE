@@ -2,10 +2,13 @@ const User = require("../../model/User");
 const UserBook = require("../../model/User_book");
 const UserTable = require("../../model/User_table");
 const Role = require("../../model/Role");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
-  const response = {};
+  const response = {};  
   if (!email || !password) {
     Object.assign(response, {
       state: 404,
@@ -13,7 +16,7 @@ module.exports.login = async (req, res) => {
     });
   } else {
     try {
-      const users = await user.findOne({ email });
+      const users = await User.findOne({ email });
 
       // Không tìm thấy user
       if (!users) {
@@ -23,7 +26,7 @@ module.exports.login = async (req, res) => {
         });
       }
       // Check role_id nếu đây là login admin
-      else if (users.role_id !== "68204adb9bd5898e0b648bd4") {
+      else if (users.role_id.toString() !== "68fc9ff0fd537a52f13daa56") {
         Object.assign(response, {
           state: 403,
           message: "Bạn không có quyền truy cập trang Admin",
@@ -52,7 +55,7 @@ module.exports.login = async (req, res) => {
               expiresIn: process.env.JWT_REFRESH_JWT_EXPRIRE,
             }
           );
-          await user.updateOne(
+          await users.updateOne(
             { _id: users },
             {
               refresh_token: refresh_token,
@@ -80,8 +83,11 @@ module.exports.login = async (req, res) => {
 // Hàm lấy tất cả users
 module.exports.GetAllUsers = async (req, res) => {
   try {
-    const role = await Role.findOne({title : "admin"})
-    const user = await User.find({role_id : {$ne : role._id}}).populate("role_id","title"); //$ne là not equal
+    const role = await Role.findOne({ title: "admin" });
+    const user = await User.find({ role_id: { $ne: role._id } }).populate(
+      "role_id",
+      "title"
+    ); //$ne là not equal
     if (!user) {
       return res.status(404).json({ message: "user not found" });
     }
@@ -91,28 +97,95 @@ module.exports.GetAllUsers = async (req, res) => {
   }
 };
 
-// Hàm ban Users
-module.exports.BanUsers = async (req, res) =>{
+// Hàm lấy tất cả thủ thư
+module.exports.GetLibrarian = async (req, res) => {
   try {
-    const {userId} = req.params;
-    const users = await User.findByIdAndUpdate(userId,{status : "Banned"});
-
-    res.status(200).json({message : "Ban người dùng thành công"}, users);
+    const librarian = await User.find({
+      role_id: "68eccb84887849ea8f813f9c",
+    }).populate("role_id", "title");
+    if (!librarian) {
+      return res.status(404).json({ message: "Librarian not found" });
+    }
+    res.status(200).json(librarian);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
-// Hàm ban Users
-module.exports.UnBanUsers = async (req, res) =>{
+};
+// Hàm tạo mới account cho thủ thư
+module.exports.CreateLibrarianAccount = async (req, res) => {
   try {
-    const {userId} = req.params;
-    const users = await User.findByIdAndUpdate(userId,{status : "active"});
+    let { fullname, email, password } = req.body;
+    const phone = "0987654321";
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    password = bcrypt.hashSync(password, 10);
+    const newUser = new User({
+      fullname,
+      email,
+      password,
+      phone,
+      role_id: "68eccb84887849ea8f813f9c" || null,
+    });
+    if (!req.body.avatar) {
+      req.body.avatar =
+        "https://res.cloudinary.com/dmdogr8na/image/upload/v1746949468/hnrnjeaoymnbudrzs7v9.jpg";
+    }
+    await newUser.save();
+    return res.status(201).json({
+      message: "Create Account successfully",
+      user: newUser,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
-    res.status(200).json({message : "UnBan người dùng thành công"}, users);
+module.exports.ChangePassForLibrarian = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { newPassword, confirmPassword } = req.body;
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Confirm password does not match" });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    return res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Lỗi khi đổi mật khẩu:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// Hàm ban Users
+module.exports.BanUsers = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const users = await User.findByIdAndUpdate(userId, { status: "Banned" });
+
+    res.status(200).json({ message: "Ban người dùng thành công" }, users);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
+// Hàm ban Users
+module.exports.UnBanUsers = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const users = await User.findByIdAndUpdate(userId, { status: "active" });
+
+    res.status(200).json({ message: "UnBan người dùng thành công" }, users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Hàm lấy tổng số người dùng
 module.exports.GetTotalUser = async (req, res) => {
   try {
@@ -130,19 +203,19 @@ module.exports.GetTotalUser = async (req, res) => {
 };
 
 // Hàm lấy tổng user mới trong tháng
-module.exports.GetTotalNewUser = async(req,res) =>{
+module.exports.GetTotalNewUser = async (req, res) => {
   try {
     let total = 0;
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const user = await User.find().select("createdAt");
-    const userThisMonth = user.filter((item)=>{
+    const userThisMonth = user.filter((item) => {
       const itemThisMonth = new Date(item.createdAt).getMonth();
       const itemThisYear = new Date(item.createdAt).getFullYear();
-      return (itemThisMonth === currentMonth && itemThisYear === currentYear);
-    })
-    for(const itemUser of userThisMonth){
-      if(itemUser){
+      return itemThisMonth === currentMonth && itemThisYear === currentYear;
+    });
+    for (const itemUser of userThisMonth) {
+      if (itemUser) {
         total += 1;
       }
     }
@@ -150,33 +223,37 @@ module.exports.GetTotalNewUser = async(req,res) =>{
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 
 // Hàm lấy thống kê doanh thu các tháng trong năm
-module.exports.GetAllRevenueByDashBoard = async(req,res)=>{
+module.exports.GetAllRevenueByDashBoard = async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
-    const userBook = await UserBook.find().select("book_detail.price createdAt");
-    const userTable = await UserTable.find().select("time_date").populate("table_id", "price");
+    const userBook = await UserBook.find().select(
+      "book_detail.price createdAt"
+    );
+    const userTable = await UserTable.find()
+      .select("time_date")
+      .populate("table_id", "price");
     const monthlyRevenue = Array(12).fill(0);
-    const userBookThisMonth = userBook.filter((item) =>{
+    const userBookThisMonth = userBook.filter((item) => {
       const itemThisYear = new Date(item.createdAt).getFullYear();
       return itemThisYear === currentYear;
-    })
-    const userTableThisMonth = userTable.filter((item)=>{
+    });
+    const userTableThisMonth = userTable.filter((item) => {
       const itemThisYear = new Date(item.time_date).getFullYear();
       return itemThisYear === currentYear;
-    })
-    for(const itemUserBook of userBookThisMonth){
+    });
+    for (const itemUserBook of userBookThisMonth) {
       const date = new Date(itemUserBook.createdAt);
-      if(itemUserBook){
+      if (itemUserBook) {
         const month = date.getMonth();
         monthlyRevenue[month] += itemUserBook.book_detail.price;
       }
     }
-     for(const itemUserBook of userTableThisMonth){
+    for (const itemUserBook of userTableThisMonth) {
       const date = new Date(itemUserBook.time_date);
-      if(itemUserBook){
+      if (itemUserBook) {
         const month = date.getMonth();
         monthlyRevenue[month] += itemUserBook.table_id.price;
       }
@@ -186,7 +263,7 @@ module.exports.GetAllRevenueByDashBoard = async(req,res)=>{
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 // Hàm lấy tổng doanh thu sách theo năm hiện tại
 module.exports.GetTotalRevenue = async (req, res) => {
   try {
@@ -194,8 +271,12 @@ module.exports.GetTotalRevenue = async (req, res) => {
     let totalUserTable = 0;
     let totalUserBook = 0;
     const currentYear = new Date().getFullYear();
-    const userBook = await UserBook.find().select("book_detail.price createdAt");
-    const userTable = await UserTable.find().select("time_date").populate("table_id", "price");
+    const userBook = await UserBook.find().select(
+      "book_detail.price createdAt"
+    );
+    const userTable = await UserTable.find()
+      .select("time_date")
+      .populate("table_id", "price");
     const userBookThisYear = userBook.filter((item) => {
       const itemYear = new Date(item.createdAt).getFullYear();
       return itemYear === currentYear;
@@ -216,4 +297,3 @@ module.exports.GetTotalRevenue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-

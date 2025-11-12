@@ -16,6 +16,8 @@ const Role = require("../../model/Role");
 const Conversation = require("../../model/Conversation");
 const { sendToUser } = require("../../config/websocket");
 const FaouriteBook = require("../../model/FaouriteBook");
+const ReviewBook = require("../../model/Review_book");
+
 // lưu ý payload có thể là algorithm (default: HS256) hoặc expiresInMinutes
 module.exports.login = async (req, res) => {
   console.log("chạy vào login của user");
@@ -559,7 +561,7 @@ module.exports.changePassword = async (req, res) => {
 
     if (!oldPassword || !newPassword || !confirmNewPassword) {
       return res.status(400).json({ message: "Thiếu thông tin mật khẩu" });
-    }
+    } 
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ message: "Mật khẩu mới không khớp" });
     }
@@ -752,7 +754,10 @@ module.exports.addFavouriteBook = async (req, res) => {
     });
     if (!book) return res.status(404).json({ message: "Không tìm thấy sách" });
 
-    let fav = await FaouriteBook.findOne({ user_id: userId, book_id: bookId });
+    let fav = await FaouriteBook.findOne({
+      user_id: userId,
+      book_id: bookId,
+    });
 
     if (fav && !fav.deleted) {
       return res.status(409).json({ message: "Sách đã có trong yêu thích" });
@@ -875,4 +880,189 @@ module.exports.refersh_token = async (req, res) => {
     }
   }
   res.status(response.state).json(response);
+};
+
+// get order book
+module.exports.getOrderBooks = async (req, res) => {
+  try {
+    const userId = res.locals.user?._id;
+    console.log("id", userId)
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_book").countDocuments(filter);
+
+    const orders = await require("../../model/User_book")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "book_id",
+        select: "title image authors price quantity slug published_year",
+        populate: { path: "authors", select: "name" },
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+//get order table
+module.exports.getOrderTables = async (req, res) => {
+  try {
+    const userId = res.locals.user?._id;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || 10, 1),
+      100
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { user_id: userId, deleted: false, status: "active" };
+    const total = await require("../../model/User_table").countDocuments(
+      filter
+    );
+
+    const orders = await require("../../model/User_table")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "table_id",
+        select: "title price status",
+      })
+      .lean();
+
+    return res.status(200).json({
+      message: "Thành công",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: orders,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+// Thêm review
+module.exports.addReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { bookId, text, rating } = req.body;
+    if (!bookId || !text || typeof rating !== "number") {
+      return res.status(400).json({ message: "Thiếu thông tin đánh giá" });
+    }
+    const review = new ReviewBook({
+      user_id: userId,
+      book_id: bookId,
+      text,
+      rating,
+    });
+    await review.save();
+    // Populate user info khi trả về
+    const populatedReview = await ReviewBook.findById(review._id).populate({
+      path: "user_id",
+      select: "fullname avatar _id",
+    });
+    return res
+      .status(201)
+      .json({ message: "Đánh giá thành công", data: populatedReview });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Lấy review theo book
+
+module.exports.getReviewBooks = async (req, res) => {
+  try {
+    const { bookId, page = 1, limit = 5 } = req.query;
+    if (!bookId) return res.status(400).json({ message: "Thiếu bookId" });
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await ReviewBook.countDocuments({
+      book_id: bookId,
+      deleted: false,
+    });
+    const reviews = await ReviewBook.find({ book_id: bookId, deleted: false })
+      .populate({ path: "user_id", select: "fullname avatar _id" })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    res.json({
+      data: reviews,
+      totalPages: Math.ceil(total / Number(limit)),
+      total,
+      page: Number(page),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Sửa review
+module.exports.editReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { reviewId, text, rating } = req.body;
+    if (!reviewId) return res.status(400).json({ message: "Thiếu reviewId" });
+
+    const review = await ReviewBook.findOne({ _id: reviewId, deleted: false });
+    if (!review)
+      return res.status(404).json({ message: "Không tìm thấy review" });
+    if (String(review.user_id) !== String(userId))
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền sửa review này" });
+
+    if (text !== undefined) review.text = text;
+    if (rating !== undefined) review.rating = rating;
+    await review.save();
+
+    return res.json({ message: "Đã sửa review", data: review });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Xóa review (xóa mềm)
+module.exports.deleteReviewBook = async (req, res) => {
+  try {
+    const userId = res.locals.user._id;
+    const { reviewId } = req.params;
+    if (!reviewId) return res.status(400).json({ message: "Thiếu reviewId" });
+
+    const review = await ReviewBook.findOne({ _id: reviewId, deleted: false });
+    if (!review)
+      return res.status(404).json({ message: "Không tìm thấy review" });
+    if (String(review.user_id) !== String(userId))
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa review này" });
+
+    review.deleted = true;
+    await review.save();
+
+    return res.json({ message: "Đã xóa review" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };

@@ -4,17 +4,15 @@ const clients = new Map();
 
 function initWebSocket(server) {
   const wss = new WebSocket.Server({ server });
-  console.log("✅ WebSocket server started");
+  console.log("WebSocket server started");
 
   wss.on("connection", (ws) => {
     console.log("🔌 Client connected");
 
-    // Khi client gửi dữ liệu lên (thường để xác định userId)
     ws.on("message", (msg) => {
       try {
         const data = JSON.parse(msg);
         if (data.type === "register") {
-          // Lưu userId vào map
           clients.set(String(data.userId), ws);
           ws.userId = data.userId;
           console.log(`✅ User ${data.userId} registered WebSocket`);

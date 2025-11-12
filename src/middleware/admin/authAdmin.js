@@ -12,7 +12,7 @@ module.exports.checkaccountAdmin = async (req, res, next) => {
   } else {
     try {
       const decode = jwt.verify(token, process.env.JWT_SECRET); // bỏi vì mình mã hóa có 2 giá trị
-      if (decode.roleId != "68204adb9bd5898e0b648bd4") {
+      if (decode.roleId != "68fc9ff0fd537a52f13daa56") {
         return res
           .status(401)
           .json({ message: " authorization denied , no Chuyengia" });
